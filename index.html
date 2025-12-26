@@ -3,50 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BITS Timetable: Complete Edition</title>
+    <title>BITS Timetable: Ultimate Edition</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
-        :root { --primary: #1e40af; --accent: #3b82f6; --bg: #f3f4f6; --text: #1f2937; --border: #e5e7eb; --red: #dc2626; --green: #16a34a; }
+        :root {
+            /* Light Mode Variables */
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --accent: #3b82f6;
+            --bg: #f3f4f6;
+            --surface: #ffffff;
+            --text: #1f2937;
+            --text-sec: #6b7280;
+            --border: #e5e7eb;
+            --red: #dc2626;
+            --green: #16a34a;
+            --shadow: rgba(0,0,0,0.05);
+            --grid-line: #e5e7eb;
+        }
+
+        [data-theme="dark"] {
+            /* Dark Mode Variables */
+            --primary: #60a5fa;
+            --primary-dark: #3b82f6;
+            --accent: #93c5fd;
+            --bg: #111827;
+            --surface: #1f2937;
+            --text: #f3f4f6;
+            --text-sec: #9ca3af;
+            --border: #374151;
+            --red: #f87171;
+            --green: #4ade80;
+            --shadow: rgba(0,0,0,0.3);
+            --grid-line: #374151;
+        }
+
         * { box-sizing: border-box; }
-        body { font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; }
+        body { font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; transition: background 0.3s, color 0.3s; }
         
         /* Header */
-        header { background: white; border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); z-index: 20; }
-        h1 { margin: 0; font-size: 1.25rem; color: var(--primary); font-weight: 800; }
-        .stats { font-size: 0.9rem; font-weight: 600; color: #4b5563; background: #f3f4f6; padding: 4px 12px; border-radius: 99px; }
+        header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px var(--shadow); z-index: 20; transition: background 0.3s; }
+        .header-left h1 { margin: 0; font-size: 1.25rem; color: var(--primary); font-weight: 800; display: flex; align-items: center; gap: 10px; }
+        .header-actions { display: flex; gap: 12px; align-items: center; }
+        .stats { font-size: 0.9rem; font-weight: 600; color: var(--text-sec); background: var(--bg); padding: 6px 14px; border-radius: 99px; border: 1px solid var(--border); }
+        
+        .btn { padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: 0.2s; display: flex; align-items: center; gap: 6px; }
+        .btn:hover { background: var(--bg); border-color: var(--accent); }
+        .btn-primary { background: var(--primary); color: white; border: none; }
+        .btn-primary:hover { background: var(--primary-dark); }
 
         /* Layout */
-        .layout { display: grid; grid-template-columns: 360px 1fr; height: calc(100vh - 60px); overflow: hidden; }
+        .layout { display: grid; grid-template-columns: 380px 1fr; height: calc(100vh - 64px); overflow: hidden; }
         
         /* Sidebar */
-        .sidebar { background: white; border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 16px; overflow-y: auto; }
+        .sidebar { background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 16px; overflow-y: auto; transition: background 0.3s; }
         
         .control-group { margin-bottom: 12px; }
-        select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; background-color: #f9fafb; transition: 0.2s; cursor: pointer; }
+        select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; background-color: var(--bg); color: var(--text); transition: 0.2s; cursor: pointer; }
         select:hover { border-color: var(--accent); }
-        select:focus { outline: none; border-color: var(--primary); ring: 2px solid var(--accent); }
+        select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px var(--shadow); }
 
         /* Section List */
-        .sec-container { flex: 1; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; background: #f9fafb; padding: 8px; margin-bottom: 16px; }
-        .type-header { font-size: 0.75rem; font-weight: 700; color: #6b7280; margin: 12px 0 6px 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+        .sec-container { flex: 1; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); padding: 8px; margin-bottom: 16px; }
+        .type-header { font-size: 0.75rem; font-weight: 700; color: var(--text-sec); margin: 12px 0 6px 4px; text-transform: uppercase; letter-spacing: 0.05em; }
         
         .sec-card { 
-            background: white; padding: 10px; margin-bottom: 8px; border-radius: 6px; border: 1px solid var(--border); 
+            background: var(--surface); padding: 10px; margin-bottom: 8px; border-radius: 6px; border: 1px solid var(--border); 
             cursor: pointer; transition: all 0.15s ease; display: grid; grid-template-columns: 1fr auto; gap: 8px;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            box-shadow: 0 1px 2px var(--shadow);
         }
-        .sec-card:hover { border-color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .sec-card.selected { border-left: 4px solid var(--primary); background: #eff6ff; border-color: var(--accent); }
-        .sec-card.conflict { opacity: 0.7; background: #fef2f2; border-color: var(--red); cursor: not-allowed; }
+        .sec-card:hover { border-color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 6px var(--shadow); }
+        .sec-card.selected { border-left: 4px solid var(--primary); background: var(--bg); border-color: var(--accent); }
+        [data-theme="dark"] .sec-card.selected { background: #1e3a8a; } /* Dark mode specific highlight */
+        
+        .sec-card.conflict { opacity: 0.7; border-color: var(--red); cursor: not-allowed; background: rgba(220, 38, 38, 0.1); }
 
         .sec-info h4 { margin: 0; font-size: 0.9rem; color: var(--primary); }
-        .sec-info p { margin: 2px 0 0; font-size: 0.8rem; color: #6b7280; display: flex; align-items: center; gap: 4px; }
-        .sec-instr { font-size: 0.75rem; color: #9ca3af; font-style: italic; text-align: right; max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .sec-info p { margin: 2px 0 0; font-size: 0.8rem; color: var(--text-sec); display: flex; align-items: center; gap: 4px; }
+        .sec-instr { font-size: 0.75rem; color: var(--text-sec); font-style: italic; text-align: right; max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
         /* My Courses */
         .my-courses { border-top: 2px solid var(--border); padding-top: 16px; }
-        .my-courses-header { font-size: 0.8rem; font-weight: 700; color: #374151; margin-bottom: 8px; text-transform: uppercase; }
+        .my-courses-header { font-size: 0.8rem; font-weight: 700; color: var(--text); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
         .course-chip { 
-            background: white; border: 1px solid var(--border); border-radius: 6px; padding: 8px; margin-bottom: 6px; 
+            background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px; margin-bottom: 6px; 
             display: flex; justify-content: space-between; align-items: flex-start;
         }
         .chip-info { flex: 1; }
@@ -55,34 +95,48 @@
         .badge { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; color: white; font-weight: 600; }
         .badge-L { background: #3b82f6; } .badge-T { background: #10b981; } .badge-P { background: #f59e0b; }
         .warning { font-size: 0.7rem; color: #d97706; display: block; margin-top: 2px; font-weight: 500; }
-        .btn-del { background: none; border: none; color: #ef4444; cursor: pointer; font-size: 1.1rem; padding: 0 0 0 8px; line-height: 1; }
+        .btn-del { background: none; border: none; color: var(--red); cursor: pointer; font-size: 1.2rem; padding: 0 0 0 8px; line-height: 1; opacity: 0.7; }
+        .btn-del:hover { opacity: 1; }
 
         /* Main Grid */
-        .main-content { padding: 20px; overflow: auto; background: #f3f4f6; }
-        .timetable-wrapper { background: white; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); overflow: hidden; border: 1px solid var(--border); }
+        .main-content { padding: 20px; overflow: auto; background: var(--bg); transition: background 0.3s; }
+        .timetable-wrapper { background: var(--surface); border-radius: 12px; box-shadow: 0 4px 6px -1px var(--shadow); overflow: hidden; border: 1px solid var(--border); transition: background 0.3s; }
         
-        table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 800px; }
-        th { background: #f9fafb; padding: 12px; font-size: 0.85rem; font-weight: 600; color: #4b5563; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
-        .time-col { width: 80px; text-align: center; background: #f9fafb; position: sticky; left: 0; z-index: 20; border-right: 2px solid var(--border); }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 900px; }
+        th { background: var(--bg); padding: 12px; font-size: 0.85rem; font-weight: 600; color: var(--text-sec); border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); position: sticky; top: 0; z-index: 10; text-align: left; }
         
-        td { border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); vertical-align: top; padding: 4px; height: 60px; transition: 0.2s; position: relative; }
-        td:hover { background: #f9fafb; }
+        /* Time Column Specifics */
+        .time-col { width: 100px; text-align: center; background: var(--bg); position: sticky; left: 0; z-index: 20; border-right: 2px solid var(--border); color: var(--text-sec); font-variant-numeric: tabular-nums; }
+        .time-slot-main { font-weight: 700; font-size: 1rem; color: var(--text); display: block; }
+        .time-slot-sub { font-size: 0.7rem; display: block; margin-top: 2px; opacity: 0.8; }
+        
+        td { border-bottom: 1px solid var(--grid-line); border-right: 1px solid var(--grid-line); vertical-align: top; padding: 4px; height: 70px; transition: 0.2s; position: relative; background: var(--surface); }
+        td:hover { background: var(--bg); }
         
         /* Grid Items */
         .grid-item { 
-            font-size: 0.75rem; padding: 4px 6px; border-radius: 4px; margin-bottom: 4px; 
+            font-size: 0.7rem; padding: 4px 6px; border-radius: 4px; margin-bottom: 4px; 
             color: white; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.1); cursor: pointer;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            border-left: 3px solid rgba(0,0,0,0.2);
+            line-height: 1.3;
         }
+        .grid-code { display: block; font-weight: 800; font-size: 0.75rem; }
+        .grid-name { display: block; opacity: 0.95; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        #toast { position: fixed; bottom: 24px; right: 24px; background: #1f2937; color: white; padding: 12px 20px; border-radius: 8px; font-size: 0.9rem; font-weight: 500; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); display: none; z-index: 100; }
+        #toast { position: fixed; bottom: 24px; right: 24px; background: var(--text); color: var(--bg); padding: 12px 20px; border-radius: 8px; font-size: 0.9rem; font-weight: 500; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2); display: none; z-index: 100; }
     </style>
 </head>
 <body>
 
 <header>
-    <h1>📅 BITS Pilani Timetable (Sem II 2025-26)</h1>
-    <div class="stats">Credits Registered: <span id="credit-count">0</span></div>
+    <div class="header-left">
+        <h1>🎓 BITS Timetable <span style="font-size:0.8rem; font-weight:400; color:var(--text-sec); margin-left:8px;">Sem II 2025-26</span></h1>
+    </div>
+    <div class="header-actions">
+        <div class="stats">Credits: <span id="credit-count">0</span></div>
+        <button class="btn" onclick="toggleTheme()" id="theme-btn">🌙 Dark Mode</button>
+        <button class="btn btn-primary" onclick="downloadImage()">📷 Download PNG</button>
+    </div>
 </header>
 
 <div class="layout">
@@ -109,7 +163,7 @@
         </div>
 
         <div id="section-list" class="sec-container">
-            <div style="text-align:center; padding: 20px; color:#9ca3af; font-size:0.9rem;">
+            <div style="text-align:center; padding: 20px; color:var(--text-sec); font-size:0.9rem;">
                 Select a category and course to view available sections.
             </div>
         </div>
@@ -121,11 +175,11 @@
     </div>
 
     <div class="main-content">
-        <div class="timetable-wrapper">
+        <div class="timetable-wrapper" id="capture-area">
             <table>
                 <thead>
                     <tr>
-                        <th class="time-col">Hour</th>
+                        <th class="time-col">Time</th>
                         <th>Monday</th>
                         <th>Tuesday</th>
                         <th>Wednesday</th>
@@ -146,7 +200,6 @@
     // ==========================================
     // 1. FULL DATABASE (Parsed from PDF)
     // ==========================================
-    // Format: Code, Name, Type, Sec, Instructor, Time, Category
     const RAW_DB = [
     // FIRST YEAR COMMON & BITS COURSES
     ["BIO F101","INTRO TO BIO SCI","L","L1","SHILPI GARG","MW 2","FY"],
@@ -766,36 +819,25 @@
     let mySchedule = [];
 
     // ==========================================
-    // 2. PARSING & LOGIC (FIXED)
+    // 2. LOGIC
     // ==========================================
     
-    // Completely rewritten robust parser to handle spaced days like "T Th F 3"
     function parseTime(str) {
         if (!str) return [];
-
-        // 1. Normalize 'Th' to 'H'
-        // 2. Add spaces around digits to ensure separation (e.g., "W1" -> "W 1")
-        // 3. Remove non-alphanumeric chars (except spaces)
         let clean = str.replace(/Th/g, 'H')
                        .replace(/(\d+)/g, ' $1 ')
                        .replace(/[^a-zA-Z0-9\s]/g, '')
                        .toUpperCase();
 
-        // Tokenize by splitting on whitespace
         let tokens = clean.trim().split(/\s+/);
         let slots = [];
         let currentDays = [];
-
-        // State tracking: Did we just finish a block of numbers?
-        // If we see a letter, and we were previously parsing numbers, we reset the day buffer.
         let parsingNumbers = false;
 
         for (let token of tokens) {
-            // Check if token is a number
             if (!isNaN(token)) {
                 let h = parseInt(token);
-                if (h >= 1 && h <= 12) { // Validate range (allowing up to 12 just in case)
-                    // Assign this hour to all currently buffered days
+                if (h >= 1 && h <= 12) {
                     for (let d of currentDays) {
                         let day = (d === 'H') ? 'Th' : d;
                         slots.push({ d: day, h: h });
@@ -803,14 +845,10 @@
                     parsingNumbers = true;
                 }
             } else {
-                // Token is a letter string (e.g. "M", "MW", "H", "F")
-                // If we were previously parsing numbers, this starts a new group, so reset days
                 if (parsingNumbers) {
                     currentDays = [];
                     parsingNumbers = false;
                 }
-
-                // Split combined days like "MW" into "M", "W"
                 for (let char of token) {
                     if (['M','T','W','H','F','S'].includes(char)) {
                         currentDays.push(char);
@@ -819,6 +857,39 @@
             }
         }
         return slots;
+    }
+
+    function shortenName(name) {
+        // Simple heuristic to shorten course names for the grid
+        const maxLen = 15;
+        if(name.length <= maxLen) return name;
+        
+        // Remove common words
+        let short = name.replace(/INTRODUCTION|PRINCIPLES|FUNDAMENTALS|ENGINEERING|SYSTEMS|LABORATORY|THEORY/gi, '')
+                        .replace(/\s+/g, ' ').trim();
+        
+        if(short.length > maxLen) return short.substring(0, maxLen) + '..';
+        return short || name.substring(0, maxLen) + '..';
+    }
+
+    function getHourLabel(h) {
+        // Map BITS hours to real time
+        // 1 = 8:00, 2 = 9:00 ...
+        const start = 7 + h; // 1 -> 8
+        const end = start + 1;
+        
+        // Formatting function
+        const format = (hr) => {
+            const suffix = hr >= 12 ? 'PM' : 'AM';
+            const displayHr = hr > 12 ? hr - 12 : hr;
+            return `${displayHr}:00 ${suffix}`;
+        };
+        
+        // BITS specific: 8:00-8:50 roughly
+        return {
+            main: `${start}:00 - ${start}:50`,
+            sub: h // The hour number
+        };
     }
 
     function updateCourses() {
@@ -836,7 +907,7 @@
             opt.textContent = `${code} - ${row[1]}`;
             select.appendChild(opt);
         });
-        document.getElementById('section-list').innerHTML = '<div style="text-align:center; padding:20px; color:#9ca3af;">Select a course to view sections.</div>';
+        document.getElementById('section-list').innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-sec);">Select a course to view sections.</div>';
     }
 
     function renderSections() {
@@ -857,7 +928,6 @@
                 container.appendChild(h);
 
                 typeSecs.forEach(sec => {
-                    // sec: [Code, Name, Type, SecNum, Instr, Time, Cat]
                     const isSelected = mySchedule.some(s => s[0]===sec[0] && s[3]===sec[3]);
                     const clash = checkClash(sec);
                     
@@ -881,7 +951,7 @@
     function checkClash(newSec) {
         const newSlots = parseTime(newSec[5]);
         for(let existing of mySchedule) {
-            if(existing[0] === newSec[0] && existing[2] === newSec[2]) continue; // Same course same type = replace
+            if(existing[0] === newSec[0] && existing[2] === newSec[2]) continue;
             const existSlots = parseTime(existing[5]);
             const overlap = newSlots.some(ns => existSlots.some(es => es.d === ns.d && es.h === ns.h));
             if(overlap) return existing;
@@ -894,7 +964,7 @@
         if(idx > -1) {
             const prev = mySchedule[idx];
             mySchedule.splice(idx, 1);
-            if(prev[3] === sec[3]) { updateUI(); return; } // Toggle off
+            if(prev[3] === sec[3]) { updateUI(); return; } 
         }
 
         const clash = checkClash(sec);
@@ -914,13 +984,12 @@
         renderMyList();
         renderSections();
         
-        // Count credits (Simplified: L=3, P=1 usually)
         const unique = [...new Set(mySchedule.map(s => s[0]))];
         let total = 0;
         unique.forEach(c => {
             const parts = mySchedule.filter(s => s[0] === c);
-            total += 3; // Base
-            if(parts.some(p => p[2] === 'P')) total += 1; // Lab
+            total += 3;
+            if(parts.some(p => p[2] === 'P')) total += 1; 
         });
         document.getElementById('credit-count').textContent = total;
     }
@@ -932,13 +1001,24 @@
         const days = ['M','T','W','Th','F','S'];
 
         hours.forEach(h => {
-            let row = `<tr><td class="time-col">${h}</td>`;
+            const timeLabels = getHourLabel(h);
+            let row = `<tr>
+                <td class="time-col">
+                    <span class="time-slot-main">${timeLabels.main}</span>
+                    <span class="time-slot-sub">Hour ${timeLabels.sub}</span>
+                </td>`;
+            
             days.forEach(d => {
                 let cellContent = '';
                 mySchedule.forEach(sec => {
                     const slots = parseTime(sec[5]);
                     if(slots.some(s => s.d === d && s.h === h)) {
-                        cellContent += `<div class="grid-item badge-${sec[2]}" title="${sec[0]} ${sec[3]}\n${sec[4]}">${sec[0]} ${sec[2]}${sec[3].replace(/[LTP]/g,'')}</div>`;
+                        const shortName = shortenName(sec[1]);
+                        cellContent += `
+                        <div class="grid-item badge-${sec[2]}" title="${sec[0]}: ${sec[1]}\n${sec[4]}">
+                            <span class="grid-code">${sec[0]} ${sec[2]}${sec[3].replace(/[LTP]/g,'')}</span>
+                            <span class="grid-name">${shortName}</span>
+                        </div>`;
                     }
                 });
                 row += `<td>${cellContent}</td>`;
@@ -953,12 +1033,10 @@
         const unique = [...new Set(mySchedule.map(s => s[0]))].sort();
 
         unique.forEach(code => {
-            // Check requirements from DB
             const dbSecs = RAW_DB.filter(r => r[0] === code);
             const hasL = dbSecs.some(r => r[2] === 'L');
             const hasP = dbSecs.some(r => r[2] === 'P');
 
-            // User selections
             const userSecs = mySchedule.filter(s => s[0] === code);
             const userL = userSecs.find(s => s[2] === 'L');
             const userP = userSecs.find(s => s[2] === 'P');
@@ -983,6 +1061,43 @@
                 <button class="btn-del" onclick="removeCourse('${code}')">&times;</button>
             `;
             list.appendChild(div);
+        });
+    }
+
+    // ==========================================
+    // 3. UI EXTRAS (Dark Mode, Download)
+    // ==========================================
+
+    function toggleTheme() {
+        const body = document.body;
+        const btn = document.getElementById('theme-btn');
+        if (body.getAttribute('data-theme') === 'dark') {
+            body.removeAttribute('data-theme');
+            btn.textContent = '🌙 Dark Mode';
+        } else {
+            body.setAttribute('data-theme', 'dark');
+            btn.textContent = '☀️ Light Mode';
+        }
+    }
+
+    function downloadImage() {
+        const element = document.getElementById('capture-area');
+        // Temporarily adjust style for capture
+        const originalOverflow = element.style.overflow;
+        element.style.overflow = 'visible'; 
+        
+        html2canvas(element, {
+            scale: 2, // High resolution
+            backgroundColor: document.body.getAttribute('data-theme') === 'dark' ? '#1f2937' : '#ffffff'
+        }).then(canvas => {
+            // Restore style
+            element.style.overflow = originalOverflow;
+            
+            const link = document.createElement('a');
+            link.download = 'BITS_Timetable.png';
+            link.href = canvas.toDataURL();
+            link.click();
+            showToast('✅ Timetable downloaded!');
         });
     }
 
