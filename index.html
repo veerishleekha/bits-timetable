@@ -3,243 +3,839 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BITS Timetable (Vertical Layout)</title>
+    <title>BITS Timetable: Complete Edition</title>
     <style>
-        :root { --primary: #2563eb; --dark: #0f172a; --bg: #f1f5f9; --border: #cbd5e1; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--dark); }
+        :root { --primary: #1e40af; --accent: #3b82f6; --bg: #f3f4f6; --text: #1f2937; --border: #e5e7eb; --red: #dc2626; --green: #16a34a; }
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; }
         
-        .layout { display: grid; grid-template-columns: 320px 1fr; gap: 20px; max-width: 1600px; margin: 0 auto; height: 95vh; }
+        /* Header */
+        header { background: white; border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); z-index: 20; }
+        h1 { margin: 0; font-size: 1.25rem; color: var(--primary); font-weight: 800; }
+        .stats { font-size: 0.9rem; font-weight: 600; color: #4b5563; background: #f3f4f6; padding: 4px 12px; border-radius: 99px; }
+
+        /* Layout */
+        .layout { display: grid; grid-template-columns: 360px 1fr; height: calc(100vh - 60px); overflow: hidden; }
         
         /* Sidebar */
-        .sidebar { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); display: flex; flex-direction: column; overflow: hidden; }
-        .controls { flex-shrink: 0; }
-        h1 { margin: 0 0 15px 0; font-size: 1.4rem; color: var(--primary); }
+        .sidebar { background: white; border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 16px; overflow-y: auto; }
         
-        select { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid var(--border); border-radius: 6px; }
-        
+        .control-group { margin-bottom: 12px; }
+        select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; background-color: #f9fafb; transition: 0.2s; cursor: pointer; }
+        select:hover { border-color: var(--accent); }
+        select:focus { outline: none; border-color: var(--primary); ring: 2px solid var(--accent); }
+
         /* Section List */
-        .sec-list { flex-grow: 1; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; padding: 5px; background: #f8fafc; }
-        .sec-header { font-weight: bold; color: #64748b; margin: 10px 5px 5px; font-size: 0.85rem; text-transform: uppercase; }
+        .sec-container { flex: 1; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; background: #f9fafb; padding: 8px; margin-bottom: 16px; }
+        .type-header { font-size: 0.75rem; font-weight: 700; color: #6b7280; margin: 12px 0 6px 4px; text-transform: uppercase; letter-spacing: 0.05em; }
         
         .sec-card { 
-            background: white; padding: 10px; margin-bottom: 5px; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; position: relative;
-            display: flex; justify-content: space-between; align-items: center;
+            background: white; padding: 10px; margin-bottom: 8px; border-radius: 6px; border: 1px solid var(--border); 
+            cursor: pointer; transition: all 0.15s ease; display: grid; grid-template-columns: 1fr auto; gap: 8px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         }
-        .sec-card:hover { border-color: var(--primary); background: #eff6ff; }
-        .sec-card.selected { border-left: 4px solid var(--primary); background: #eff6ff; }
-        .sec-card.conflict { opacity: 0.5; background: #fee2e2; border-color: #ef4444; cursor: not-allowed; }
-        
-        /* My Courses Panel */
-        .my-courses { flex-shrink: 0; border-top: 2px solid var(--border); padding-top: 10px; max-height: 30%; overflow-y: auto; }
-        .course-group { background: #f8fafc; border: 1px solid var(--border); border-radius: 6px; padding: 8px; margin-bottom: 6px; }
-        .course-title { font-weight: bold; font-size: 0.9rem; display: flex; justify-content: space-between; }
-        .missing-warning { color: #d97706; font-size: 0.75rem; display: block; margin-top: 2px; }
-        .comp-tag { font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; color: white; margin-right: 4px; display: inline-block; margin-top: 4px; }
-        
-        /* Colors */
-        .tag-L { background: #3b82f6; } /* Blue for Lecture */
-        .tag-T { background: #10b981; } /* Green for Tutorial */
-        .tag-P { background: #f59e0b; } /* Orange for Practical */
+        .sec-card:hover { border-color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .sec-card.selected { border-left: 4px solid var(--primary); background: #eff6ff; border-color: var(--accent); }
+        .sec-card.conflict { opacity: 0.7; background: #fef2f2; border-color: var(--red); cursor: not-allowed; }
 
-        /* Vertical Timetable */
-        .grid-container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); overflow: auto; }
-        table { width: 100%; border-collapse: collapse; min-width: 600px; height: 100%; }
+        .sec-info h4 { margin: 0; font-size: 0.9rem; color: var(--primary); }
+        .sec-info p { margin: 2px 0 0; font-size: 0.8rem; color: #6b7280; display: flex; align-items: center; gap: 4px; }
+        .sec-instr { font-size: 0.75rem; color: #9ca3af; font-style: italic; text-align: right; max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* My Courses */
+        .my-courses { border-top: 2px solid var(--border); padding-top: 16px; }
+        .my-courses-header { font-size: 0.8rem; font-weight: 700; color: #374151; margin-bottom: 8px; text-transform: uppercase; }
+        .course-chip { 
+            background: white; border: 1px solid var(--border); border-radius: 6px; padding: 8px; margin-bottom: 6px; 
+            display: flex; justify-content: space-between; align-items: flex-start;
+        }
+        .chip-info { flex: 1; }
+        .chip-code { font-weight: 700; font-size: 0.85rem; color: var(--primary); }
+        .chip-badges { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+        .badge { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; color: white; font-weight: 600; }
+        .badge-L { background: #3b82f6; } .badge-T { background: #10b981; } .badge-P { background: #f59e0b; }
+        .warning { font-size: 0.7rem; color: #d97706; display: block; margin-top: 2px; font-weight: 500; }
+        .btn-del { background: none; border: none; color: #ef4444; cursor: pointer; font-size: 1.1rem; padding: 0 0 0 8px; line-height: 1; }
+
+        /* Main Grid */
+        .main-content { padding: 20px; overflow: auto; background: #f3f4f6; }
+        .timetable-wrapper { background: white; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); overflow: hidden; border: 1px solid var(--border); }
         
-        th { position: sticky; top: 0; background: #f1f5f9; z-index: 10; padding: 10px; border: 1px solid var(--border); color: #475569; }
-        .time-col { width: 80px; text-align: center; font-weight: bold; background: #f8fafc; color: #64748b; }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 800px; }
+        th { background: #f9fafb; padding: 12px; font-size: 0.85rem; font-weight: 600; color: #4b5563; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
+        .time-col { width: 80px; text-align: center; background: #f9fafb; position: sticky; left: 0; z-index: 20; border-right: 2px solid var(--border); }
         
-        td { border: 1px solid #e2e8f0; height: 50px; vertical-align: middle; padding: 4px; text-align: center; }
+        td { border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); vertical-align: top; padding: 4px; height: 60px; transition: 0.2s; position: relative; }
+        td:hover { background: #f9fafb; }
         
-        .chip { 
-            font-size: 0.75rem; padding: 4px; border-radius: 4px; margin: 2px 0; color: white; 
-            box-shadow: 0 1px 2px rgba(0,0,0,0.1); font-weight: 500;
+        /* Grid Items */
+        .grid-item { 
+            font-size: 0.75rem; padding: 4px 6px; border-radius: 4px; margin-bottom: 4px; 
+            color: white; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.1); cursor: pointer;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
 
-        #toast { position: fixed; bottom: 20px; right: 20px; background: #333; color: white; padding: 10px 20px; border-radius: 6px; display: none; }
+        #toast { position: fixed; bottom: 24px; right: 24px; background: #1f2937; color: white; padding: 12px 20px; border-radius: 8px; font-size: 0.9rem; font-weight: 500; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); display: none; z-index: 100; }
     </style>
 </head>
 <body>
 
+<header>
+    <h1>📅 BITS Pilani Timetable (Sem II 2025-26)</h1>
+    <div class="stats">Credits Registered: <span id="credit-count">0</span></div>
+</header>
+
 <div class="layout">
     <div class="sidebar">
-        <div class="controls">
-            <h1>📅 BITS Scheduler</h1>
-            
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; color:#475569;">
-                <span>Total Credits: <span id="total-credits" style="color:var(--primary)">0</span></span>
-            </div>
-
-            <select id="cat-select" onchange="updateCourseDropdown()">
-                <option value="ALL">-- 1. Select Stream --</option>
-                <option value="FY">First Year (General)</option>
-                <option value="CS">Computer Science</option>
-                <option value="EEE">Electronics / Instr</option>
-                <option value="ME">Mechanical</option>
+        <div class="control-group">
+            <select id="cat-select" onchange="updateCourses()">
+                <option value="ALL">-- Select Discipline / Category --</option>
+                <option value="FY">First Year Common (Bio/Chem/Math/Phy)</option>
+                <option value="CS">Computer Science (CS/IS/SS)</option>
+                <option value="EEE">Electronics (EEE/ECE/INSTR)</option>
+                <option value="ME">Mechanical & Manufacturing</option>
+                <option value="CIV">Civil</option>
+                <option value="CHE">Chemical</option>
                 <option value="PHA">Pharmacy</option>
-                <option value="FIN">Finance Minor</option>
-                <option value="HUM">Humanities / Electives</option>
+                <option value="SCI">MSc Sciences (Math/Phy/Chem/Bio)</option>
+                <option value="FIN">Finance / Econ / Mgmt</option>
+                <option value="HUM">Humanities & Electives</option>
             </select>
-
+        </div>
+        <div class="control-group">
             <select id="course-select" onchange="renderSections()">
-                <option value="">-- 2. Select Course --</option>
+                <option value="">-- Select Course --</option>
             </select>
         </div>
 
-        <div id="sec-list" class="sec-list">
-            <div style="padding:20px; text-align:center; color:#94a3b8;">Select a course to view L/T/P sections</div>
+        <div id="section-list" class="sec-container">
+            <div style="text-align:center; padding: 20px; color:#9ca3af; font-size:0.9rem;">
+                Select a category and course to view available sections.
+            </div>
         </div>
 
         <div class="my-courses">
-            <div style="font-size:0.85rem; font-weight:bold; color:#64748b; margin-bottom:5px;">MY COURSES</div>
-            <div id="reg-list"></div>
+            <div class="my-courses-header">Selected Courses</div>
+            <div id="selected-list"></div>
         </div>
     </div>
 
-    <div class="grid-container">
-        <table>
-            <thead>
-                <tr>
-                    <th class="time-col">Hour</th>
-                    <th>Monday</th>
-                    <th>Tuesday</th>
-                    <th>Wednesday</th>
-                    <th>Thursday</th>
-                    <th>Friday</th>
-                    <th>Saturday</th>
-                </tr>
-            </thead>
-            <tbody id="timetable-body">
-                </tbody>
-        </table>
+    <div class="main-content">
+        <div class="timetable-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="time-col">Hour</th>
+                        <th>Monday</th>
+                        <th>Tuesday</th>
+                        <th>Wednesday</th>
+                        <th>Thursday</th>
+                        <th>Friday</th>
+                        <th>Saturday</th>
+                    </tr>
+                </thead>
+                <tbody id="grid-body"></tbody>
+            </table>
+        </div>
     </div>
 </div>
 
 <div id="toast"></div>
 
 <script>
-    // ============================================
-    // 1. DATABASE (With Labs & Tutorials Added)
-    // ============================================
-    const DB = [
-        // --- CS CORE ---
-        // Added Tutorials/Practicals (Dummy data based on typical patterns if missing in original)
-        {c:"CS F111", n:"Comp Programming", cr:4, t:"L", s:"L1", i:"Bharat R", tm:"MW 2 T 9", cat:"FY"},
-        {c:"CS F111", n:"Comp Programming", cr:4, t:"L", s:"L2", i:"Jagat Sesh", tm:"T Th F 3", cat:"FY"},
-        {c:"CS F111", n:"Comp Programming", cr:4, t:"P", s:"P1", i:"Radhika B", tm:"M 3 4", cat:"FY"},
-        {c:"CS F111", n:"Comp Programming", cr:4, t:"P", s:"P2", i:"Abhinand", tm:"W 6 7", cat:"FY"},
-        
-        {c:"CS F211", n:"Data Structures", cr:4, t:"L", s:"L1", i:"Poonam Goyal", tm:"MW 4 T 10", cat:"CS"},
-        {c:"CS F211", n:"Data Structures", cr:4, t:"P", s:"P1", i:"Aarti", tm:"T 7 8 9", cat:"CS"},
-        {c:"CS F211", n:"Data Structures", cr:4, t:"P", s:"P2", i:"Soumya", tm:"Th 7 8 9", cat:"CS"},
+    // ==========================================
+    // 1. FULL DATABASE (Parsed from PDF)
+    // ==========================================
+    // Format: Code, Name, Type, Sec, Instructor, Time, Category
+    const RAW_DB = [
+    // FIRST YEAR COMMON & BITS COURSES
+    ["BIO F101","INTRO TO BIO SCI","L","L1","SHILPI GARG","MW 2","FY"],
+    ["BIO F101","INTRO TO BIO SCI","L","L2","Shilpi Garg","MW 4","FY"],
+    ["BIO F101","INTRO TO BIO SCI","T","T1","Shashi Prakash","F 1","FY"],
+    ["BIO F101","INTRO TO BIO SCI","T","T2","Prabhat Nath","T 9","FY"],
+    ["BIO F101","INTRO TO BIO SCI","T","T3","Meghana Tare","F 1","FY"],
+    ["BIO F101","INTRO TO BIO SCI","T","T4","Shilpi Garg","F 1","FY"],
+    ["BIO F101","INTRO TO BIO SCI","T","T5","B Vani","T 7","FY"],
+    ["BIO F101","INTRO TO BIO SCI","T","T6","B Vani","F 1","FY"],
+    ["BIO F101","INTRO TO BIO SCI","T","T7","Yadukrishnan","F 1","FY"],
+    ["BIO F101","INTRO TO BIO SCI","T","T8","Jitendra P","F 1","FY"],
+    ["BIO F101","INTRO TO BIO SCI","T","T9","Jitendra P","T 9","FY"],
+    ["BIO F101","INTRO TO BIO SCI","T","T10","Mukul Joshi","T 9","FY"],
+    ["BIO F101","INTRO TO BIO SCI","T","T11","Sushmita Basu","T 7","FY"],
+    ["BIO F101","INTRO TO BIO SCI","T","T12","Sushmita Basu","F 1","FY"],
+    ["BIO F101","INTRO TO BIO SCI","T","T13","Jigneshkumar","T 9","FY"],
+    ["BIO F101","INTRO TO BIO SCI","P","P1","Sudeshna M","M 12","FY"],
+    ["BIO F101","INTRO TO BIO SCI","P","P2","Syamantak M","Th 3 4","FY"],
+    ["BIO F101","INTRO TO BIO SCI","P","P3","Vishal Saxena","F 12","FY"],
+    ["BIO F101","INTRO TO BIO SCI","P","P4","Shibasish C","F 3 4","FY"],
+    ["BIO F101","INTRO TO BIO SCI","P","P5","Viraaj Kumar","M 6 7","FY"],
+    ["BIO F101","INTRO TO BIO SCI","P","P6","Abha Gupta","F 6 7","FY"],
+    ["BIO F101","INTRO TO BIO SCI","P","P7","Mukul S","M 3 4","FY"],
+    ["BIO F101","INTRO TO BIO SCI","P","P8","Mohit Rana","Th 6 7","FY"],
+    ["BIO F101","INTRO TO BIO SCI","P","P9","Charudutt P","T 6 7","FY"],
+    ["BIO F101","INTRO TO BIO SCI","P","P10","Gitika Sharma","W 6 7","FY"],
+    ["BIO F101","INTRO TO BIO SCI","P","P11","Saswata Rath","T 1 2","FY"],
+    ["BIO F101","INTRO TO BIO SCI","P","P12","Himadri Sharma","T 3 4","FY"],
+    ["BIO F101","INTRO TO BIO SCI","P","P13","Satya Omprabha","W 1 2","FY"],
+    ["BITS F111","THERMODYNAMICS","L","L1","NAVIN SINGH","MW 2 T 9","FY"],
+    ["BITS F111","THERMODYNAMICS","T","T1","Navin Singh","F 1","FY"],
+    ["BITS F112","TECH REPORT WRIT","L","L1","Gokul V","M 1 MW 2","FY"],
+    ["BITS F112","TECH REPORT WRIT","L","L2","Staff","MW 7","FY"],
+    ["BITS F112","TECH REPORT WRIT","L","L3","Staff","MW 8","FY"],
+    ["BITS F112","TECH REPORT WRIT","L","L4","Staff","T Th 2","FY"],
+    ["BITS F112","TECH REPORT WRIT","L","L5","Staff","T Th 3","FY"],
+    ["BITS F112","TECH REPORT WRIT","L","L6","Staff","T Th 4","FY"],
+    ["BITS F112","TECH REPORT WRIT","L","L7","Staff","T Th 7","FY"],
+    ["BITS F112","TECH REPORT WRIT","L","L8","Staff","T Th 8","FY"],
+    ["BITS F112","TECH REPORT WRIT","L","L9","Staff","T Th 9","FY"],
+    ["BITS F112","TECH REPORT WRIT","L","L10","Staff","MW 3","FY"],
+    ["BITS F112","TECH REPORT WRIT","L","L11","Staff","MW 4","FY"],
+    ["BITS F112","TECH REPORT WRIT","L","L12","Staff","MW 6","FY"],
+    ["BITS F114","GEN MATH II","L","L1","ASHISH TIWARI","MW 3 Th 9","FY"],
+    ["BITS F114","GEN MATH II","T","T1","Ashish Tiwari","W 1","FY"],
+    ["CHEM F101","FUNDA OF CHEM","L","L1","SAUMI RAY","MW 2","FY"],
+    ["CHEM F101","FUNDA OF CHEM","L","L2","Anil Kumar","MW 4","FY"],
+    ["CHEM F101","FUNDA OF CHEM","T","T1","Dalip Kumar","T 9","FY"],
+    ["CHEM F101","FUNDA OF CHEM","T","T2","Dalip Kumar","F 1","FY"],
+    ["CHEM F101","FUNDA OF CHEM","T","T3","Prashant U","T 9","FY"],
+    ["CHEM F101","FUNDA OF CHEM","T","T4","Paritosh S","F 1","FY"],
+    ["CHEM F101","FUNDA OF CHEM","T","T5","Paritosh S","T 9","FY"],
+    ["CHEM F101","FUNDA OF CHEM","T","T6","Ram Kinkar","F 1","FY"],
+    ["CHEM F101","FUNDA OF CHEM","T","T7","Anish Rao","T 9","FY"],
+    ["CHEM F101","FUNDA OF CHEM","T","T8","Ajay Sah","F 1","FY"],
+    ["CHEM F101","FUNDA OF CHEM","T","T9","Ajay Sah","T 9","FY"],
+    ["CHEM F101","FUNDA OF CHEM","T","T10","Anil Kumar","F 1","FY"],
+    ["CHEM F101","FUNDA OF CHEM","T","T11","Partha Addy","F 1","FY"],
+    ["CHEM F101","FUNDA OF CHEM","T","T12","Partha Addy","T 9","FY"],
+    ["CHEM F101","FUNDA OF CHEM","T","T13","Satyajit P","T 9","FY"],
+    ["CHEM F101","FUNDA OF CHEM","T","T14","Satyajit P","F 1","FY"],
+    ["CHEM F101","FUNDA OF CHEM","P","P1","Mrinmoyee Basu","T 1 2","FY"],
+    ["CHEM F101","FUNDA OF CHEM","P","P2","Saumi Ray","Th 1 2","FY"],
+    ["CHEM F101","FUNDA OF CHEM","P","P3","I R Laskar","Th 6 7","FY"],
+    ["CHEM F101","FUNDA OF CHEM","P","P4","I R Laskar","F 6 7","FY"],
+    ["CHEM F101","FUNDA OF CHEM","P","P5","Bharti K","F 1 2","FY"],
+    ["CHEM F101","FUNDA OF CHEM","P","P6","Paritosh S","F 3 4","FY"],
+    ["CHEM F101","FUNDA OF CHEM","P","P7","Paritosh S","T 3 4","FY"],
+    ["CHEM F101","FUNDA OF CHEM","P","P8","Anish Rao","Th 3 4","FY"],
+    ["CHEM F101","FUNDA OF CHEM","P","P9","Partha Addy","S 1 2","FY"],
+    ["CHEM F101","FUNDA OF CHEM","P","P10","Partha Addy","T 6 7","FY"],
+    ["CS F111","COMP PROGRAMMING","L","L1","BHARAT R","MW 2 T 9","FY"],
+    ["CS F111","COMP PROGRAMMING","L","L2","Jagat Sesh","T Th F 3","FY"],
+    ["CS F111","COMP PROGRAMMING","P","P1","Radhika B","M 3 4","FY"],
+    ["CS F111","COMP PROGRAMMING","P","P2","Radhika B","W 6 7","FY"],
+    ["CS F111","COMP PROGRAMMING","P","P3","Abhinand P","W 6 7","FY"],
+    ["CS F111","COMP PROGRAMMING","P","P4","Abhinand P","F 6 7","FY"],
+    ["CS F111","COMP PROGRAMMING","P","P5","Mohit","F 6 7","FY"],
+    ["CS F111","COMP PROGRAMMING","P","P6","Mohit","M 3 4","FY"],
+    ["CS F111","COMP PROGRAMMING","P","P7","Ashin Babu","T 3 4","FY"],
+    ["CS F111","COMP PROGRAMMING","P","P8","Ashin Babu","M 6 7","FY"],
+    ["CS F111","COMP PROGRAMMING","P","P9","Manasvi S","Th 3 4","FY"],
+    ["CS F111","COMP PROGRAMMING","P","P10","Manasvi S","M 6 7","FY"],
+    ["CS F111","COMP PROGRAMMING","P","P11","Staff","W 3 4","FY"],
+    ["CS F111","COMP PROGRAMMING","P","P12","Staff","W 3 4","FY"],
+    ["CS F111","COMP PROGRAMMING","P","P13","Staff","F 3 4","FY"],
+    ["CS F111","COMP PROGRAMMING","P","P14","Sundaresan R","T 3 4","FY"],
+    ["CS F111","COMP PROGRAMMING","P","P15C","Staff","Th 3 4","FY"],
+    ["EEE F111","ELEC SCIENCES","L","L1","PRAVEEN K","T Th F 2","FY"],
+    ["EEE F111","ELEC SCIENCES","L","L2","Navneet G","MW 3 Th 9","FY"],
+    ["EEE F111","ELEC SCIENCES","T","T1","Abhijit A","F 7","FY"],
+    ["EEE F111","ELEC SCIENCES","T","T2","Praveen K","F 7","FY"],
+    ["EEE F111","ELEC SCIENCES","T","T3","Pankaj A","T 1","FY"],
+    ["EEE F111","ELEC SCIENCES","T","T4","Arnab H","T 1","FY"],
+    ["EEE F111","ELEC SCIENCES","T","T5","Bhavesh C","T 1","FY"],
+    ["EEE F111","ELEC SCIENCES","T","T6","Neeraj M","F 7","FY"],
+    ["EEE F111","ELEC SCIENCES","T","T7","Satyendra M","T 1","FY"],
+    ["EEE F111","ELEC SCIENCES","T","T8","Bhavesh C","F 7","FY"],
+    ["EEE F111","ELEC SCIENCES","T","T9","Karunesh G","T 1","FY"],
+    ["EEE F111","ELEC SCIENCES","T","T10","Dinesh R","T 1","FY"],
+    ["EEE F111","ELEC SCIENCES","T","T11","Syed Z","F 7","FY"],
+    ["MATH F112","MATH II","L","L1","SANGITA YADAV","MWF 9","FY"],
+    ["MATH F112","MATH II","T","T1","Ashish Tiwari","F 1","FY"],
+    ["MATH F113","PROB & STATS","L","L1","Anirudh S","T Th F 6","FY"],
+    ["MATH F113","PROB & STATS","L","L2","Pramod E","T Th F 3","FY"],
+    ["MATH F113","PROB & STATS","L","L3","Rajesh Kumar","MW 6 Th 8","FY"],
+    ["MATH F113","PROB & STATS","T","T1","Anirudh S","W 1","FY"],
+    ["MATH F113","PROB & STATS","T","T2","Chandra S","T 1","FY"],
+    ["MATH F113","PROB & STATS","T","T3","Dhiraj K","T 8","FY"],
+    ["MATH F113","PROB & STATS","T","T4","Dhiraj K","M 8","FY"],
+    ["MATH F113","PROB & STATS","T","T5","Dhiraj K","Th 1","FY"],
+    ["MATH F113","PROB & STATS","T","T6","Divyum S","M 8","FY"],
+    ["MATH F113","PROB & STATS","T","T7","Pramod E","Th 1","FY"],
+    ["MATH F113","PROB & STATS","T","T8","Rahul Kumar","T 8","FY"],
+    ["MATH F113","PROB & STATS","T","T9","Rahul Kumar","M 8","FY"],
+    ["MATH F113","PROB & STATS","T","T10","Rahul Kumar","W 1","FY"],
+    ["MATH F113","PROB & STATS","T","T11","Rakhee","Th 1","FY"],
+    ["MATH F113","PROB & STATS","T","T12","Rakhee","M 8","FY"],
+    ["MATH F113","PROB & STATS","T","T13","Rakhee","W 1","FY"],
+    ["MATH F113","PROB & STATS","T","T14","Rijubrata K","M 8","FY"],
+    ["MATH F113","PROB & STATS","T","T15","Rijubrata K","T 8","FY"],
+    ["MATH F113","PROB & STATS","T","T16","Rijubrata K","W 1","FY"],
+    ["MATH F113","PROB & STATS","T","T17","Shivi A","T 8","FY"],
+    ["MATH F113","PROB & STATS","T","T18","Shuchita G","Th 1","FY"],
+    ["MATH F113","PROB & STATS","T","T19","Shuchita G","W 1","FY"],
+    ["MATH F113","PROB & STATS","T","T20","Shuchita G","T 8","FY"],
+    ["MATH F113","PROB & STATS","T","T21","Sudarshan S","W 1","FY"],
+    ["MATH F113","PROB & STATS","T","T22","Sudarshan S","M 8","FY"],
+    ["MATH F113","PROB & STATS","T","T23","Sudarshan S","T 8","FY"],
+    ["MATH F113","PROB & STATS","T","T24","Sumanta P","Th 1","FY"],
+    ["MATH F113","PROB & STATS","T","T25","Rijubrata K","Th 1","FY"],
+    ["MATH F113","PROB & STATS","T","T26","Sudarshan S","Th 1","FY"],
+    ["ME F112","WORKSHOP PRACTICE","L","L1","AMIT KUMAR","Th 7","FY"],
+    ["PHY F101","OSCILLATIONS & WAVES","L","L1","Anshuman D","T Th F 6","FY"],
+    ["PHY F101","OSCILLATIONS & WAVES","L","L2","Raj Kumar","T Th F 4","FY"],
+    ["PHY F101","OSCILLATIONS & WAVES","T","T1","Rakesh C","Th 1","FY"],
+    ["PHY F101","OSCILLATIONS & WAVES","T","T2","Rakesh C","F 8","FY"],
+    ["PHY F101","OSCILLATIONS & WAVES","T","T3","Niladri S","F 8","FY"],
+    ["PHY F101","OSCILLATIONS & WAVES","T","T4","Vaidya R","F 8","FY"],
+    ["PHY F101","OSCILLATIONS & WAVES","T","T5","Vaidya R","Th 1","FY"],
+    ["PHY F101","OSCILLATIONS & WAVES","T","T6","Debashis B","F 8","FY"],
+    ["PHY F101","OSCILLATIONS & WAVES","T","T7","Debashis B","Th 1","FY"],
+    ["PHY F101","OSCILLATIONS & WAVES","T","T8","Aritra B","F 8","FY"],
+    ["PHY F101","OSCILLATIONS & WAVES","T","T9","Sandipan D","F 8","FY"],
+    ["PHY F101","OSCILLATIONS & WAVES","T","T10","S Gangopadhyay","Th 1","FY"],
+    ["PHY F101","OSCILLATIONS & WAVES","T","T11","S Gangopadhyay","F 8","FY"],
+    ["PHY F101","OSCILLATIONS & WAVES","T","T12","Tanmoy M","Th 1","FY"],
+    ["PHY F101","OSCILLATIONS & WAVES","T","T13","Tapomoy G","Th 1","FY"],
+    ["PHY F101","OSCILLATIONS & WAVES","T","T14","Srijata Dey","Th 1","FY"],
+    ["PHY F101","OSCILLATIONS & WAVES","T","T15","Srijata Dey","F 8","FY"],
+    ["PHY F101","OSCILLATIONS & WAVES","P","P1","Amol R","M 12","FY"],
+    ["PHY F101","OSCILLATIONS & WAVES","P","P2","Madhukar M","W 3 4","FY"],
+    ["PHY F101","OSCILLATIONS & WAVES","P","P3","Vaidya R","W 1 2","FY"],
+    ["PHY F101","OSCILLATIONS & WAVES","P","P4","Sajal M","M 6 7","FY"],
+    ["PHY F101","OSCILLATIONS & WAVES","P","P5","Arpan Das","F 3 4","FY"],
+    ["PHY F101","OSCILLATIONS & WAVES","P","P6","Biswanath L","T 6 7","FY"],
+    ["PHY F101","OSCILLATIONS & WAVES","P","P7","Biswanath L","W 6 7","FY"],
+    ["PHY F101","OSCILLATIONS & WAVES","P","P8","Bhavesh J","Th 6 7","FY"],
+    ["PHY F101","OSCILLATIONS & WAVES","P","P9","Rakesh C","T 3 4","FY"],
+    ["PHY F101","OSCILLATIONS & WAVES","P","P10","Neha K","M 3 4","FY"],
+    ["PHY F101","OSCILLATIONS & WAVES","P","P11","Sandipan D","T 1 2","FY"],
+    ["PHY F101","OSCILLATIONS & WAVES","P","P12","Debi Datt P","F 6 7","FY"],
+    ["PHY F101","OSCILLATIONS & WAVES","P","P13","Sayan Das","F 1 2","FY"],
+    ["PHY F101","OSCILLATIONS & WAVES","P","P14","Pragya C","Th 3 4","FY"],
+    ["PHY F101","OSCILLATIONS & WAVES","P","P15","Bhavesh J","Th 1 2","FY"],
+    
+    // COMPUTER SCIENCE (CS)
+    ["CS F211","DATA STRUCT & ALGO","L","L1","POONAM GOYAL","MW 4 T 10","CS"],
+    ["CS F211","DATA STRUCT & ALGO","L","L2","Vishal Gupta","T Th F 3","CS"],
+    ["CS F211","DATA STRUCT & ALGO","P","P1","Aarti","T 7 8 9","CS"],
+    ["CS F211","DATA STRUCT & ALGO","P","P2","Aarti","Th 7 8 9","CS"],
+    ["CS F211","DATA STRUCT & ALGO","P","P3","Soumya S","M 1 2 3","CS"],
+    ["CS F211","DATA STRUCT & ALGO","P","P4","Soumya S","W 1 2 3","CS"],
+    ["CS F211","DATA STRUCT & ALGO","P","P5","Staff","T 7 8 9","CS"],
+    ["CS F211","DATA STRUCT & ALGO","P","P6","Jaya Pathak","Th 7 8 9","CS"],
+    ["CS F211","DATA STRUCT & ALGO","P","P7","Jaya Pathak","F 7 8 9","CS"],
+    ["CS F211","DATA STRUCT & ALGO","P","P8","Nikhil M","S 1 2 3","CS"],
+    ["CS F211","DATA STRUCT & ALGO","P","P9","Nikhil M","S 1 2 3","CS"],
+    ["CS F212","DATABASE SYSTEMS","L","L1","HARI BABU","MW 4 T 10","CS"],
+    ["CS F212","DATABASE SYSTEMS","L","L2","Navneet Goyal","T Th F 3","CS"],
+    ["CS F212","DATABASE SYSTEMS","P","P1","Ravi Kumar","T 1 2","CS"],
+    ["CS F212","DATABASE SYSTEMS","P","P2","Ravi Kumar","Th 1 2","CS"],
+    ["CS F212","DATABASE SYSTEMS","P","P3","Anukriti P","T 1 2","CS"],
+    ["CS F212","DATABASE SYSTEMS","P","P4","Anukriti P","Th 1 2","CS"],
+    ["CS F212","DATABASE SYSTEMS","P","P5","Neha","T 1 2","CS"],
+    ["CS F212","DATABASE SYSTEMS","P","P6","Neha","Th 1 2","CS"],
+    ["CS F212","DATABASE SYSTEMS","P","P7","Prashant U","F 1 2","CS"],
+    ["CS F212","DATABASE SYSTEMS","P","P8","Prashant U","Th 7 8","CS"],
+    ["CS F213","OBJ ORIENTED PROG","L","L1","TANMAYA M","MWF 8","CS"],
+    ["CS F213","OBJ ORIENTED PROG","L","L2","Avinash G","T Th F 3","CS"],
+    ["CS F213","OBJ ORIENTED PROG","P","P1","Kartikey S","F 1 2","CS"],
+    ["CS F213","OBJ ORIENTED PROG","P","P2","Kartikey S","Th 7 8","CS"],
+    ["CS F213","OBJ ORIENTED PROG","P","P3","Staff","F 10 11","CS"],
+    ["CS F213","OBJ ORIENTED PROG","P","P4","Staff","T 1 2","CS"],
+    ["CS F241","MICROPROC & INT","L","L1E","MEETHA SHENOY","MW 5 Th 10","CS"],
+    ["CS F241","MICROPROC & INT","L","L2C","JP Misra","MW 5 Th 10","CS"],
+    ["CS F241","MICROPROC & INT","T","T1E","Sai Sesha","W 9","CS"],
+    ["CS F241","MICROPROC & INT","T","T2E","Meetha S","W 9","CS"],
+    ["CS F241","MICROPROC & INT","T","T3E","Balamurugan","W 9","CS"],
+    ["CS F241","MICROPROC & INT","T","T4E","Sai Sesha","M 1","CS"],
+    ["CS F241","MICROPROC & INT","T","T5E","Govind P","W 9","CS"],
+    ["CS F241","MICROPROC & INT","T","T6C","Tejasvi A","F 9","CS"],
+    ["CS F241","MICROPROC & INT","T","T7C","Tejasvi A","W 9","CS"],
+    ["CS F241","MICROPROC & INT","T","T8C","Gopal Singh","F 9","CS"],
+    ["CS F241","MICROPROC & INT","T","T9C","Gopal Singh","W 9","CS"],
+    ["CS F241","MICROPROC & INT","T","T10C","Staff","W 9","CS"],
+    ["CS F241","MICROPROC & INT","P","P1E","Aishwarya B","T 7 8","CS"],
+    ["CS F241","MICROPROC & INT","P","P2E","Aniket K","Th 7 8","CS"],
+    ["CS F241","MICROPROC & INT","P","P3E","Aparajita D","T 7 8","CS"],
+    ["CS F241","MICROPROC & INT","P","P4E","Jaya Sharma","Th 7 8","CS"],
+    ["CS F241","MICROPROC & INT","P","P5E","Raman","M 1 2","CS"],
+    ["CS F241","MICROPROC & INT","P","P6E","Jaya Sharma","W 1 2","CS"],
+    ["CS F241","MICROPROC & INT","P","P7E","Ankit Sharma","M 1 2","CS"],
+    ["CS F241","MICROPROC & INT","P","P8E","Aishwarya B","W 1 2","CS"],
+    ["CS F241","MICROPROC & INT","P","P9C","Devanshu S","T 1 2","CS"],
+    ["CS F241","MICROPROC & INT","P","P10C","Nivedan Y","Th 1 2","CS"],
+    ["CS F241","MICROPROC & INT","P","P11C","Vijay S","T 1 2","CS"],
+    ["CS F241","MICROPROC & INT","P","P12C","Raja Piyush","Th 1 2","CS"],
+    ["CS F241","MICROPROC & INT","P","P13C","Rudresh P","T 1 2","CS"],
+    ["CS F241","MICROPROC & INT","P","P14C","Tulika T","F 1 2","CS"],
+    ["CS F241","MICROPROC & INT","P","P15C","Suvrojyoti","F 1 2","CS"],
+    ["CS F241","MICROPROC & INT","P","P16C","Priyanka J","Th 1 2","CS"],
+    ["CS F303","COMP NETWORKS","L","L1","VIRENDRA S","T Th F 4","CS"],
+    ["CS F303","COMP NETWORKS","L","L2","Yash Sinha","T Th F 4","CS"],
+    ["CS F303","COMP NETWORKS","P","P1","Harshvardhan","M 1 2","CS"],
+    ["CS F303","COMP NETWORKS","P","P2","Harshvardhan","W 1 2","CS"],
+    ["CS F303","COMP NETWORKS","P","P3","Mallipeddi","M 1 2","CS"],
+    ["CS F303","COMP NETWORKS","P","P4","Mallipeddi","W 1 2","CS"],
+    ["CS F303","COMP NETWORKS","P","P5","Staff","M 1 2","CS"],
+    ["CS F303","COMP NETWORKS","P","P6","Staff","W 1 2","CS"],
+    ["CS F303","COMP NETWORKS","P","P7","Devika S","T 7 8","CS"],
+    ["CS F320","FOUND OF DATA SCI","L","L1","NAVNEET GOYAL","MWF 8","CS"],
+    ["CS F320","FOUND OF DATA SCI","P","P1","Aravind B","W 10 11","CS"],
+    ["CS F320","FOUND OF DATA SCI","P","P2","Aravind B","F 10 11","CS"],
+    ["CS F342","COMP ARCH","L","L1","SAURABH GANDHI","MWF 9","CS"],
+    ["CS F342","COMP ARCH","P","P1","Rahul R","S 4 5","CS"],
+    ["CS F342","COMP ARCH","P","P2","Rahul R","M 10 11","CS"],
+    ["CS F351","THEORY OF COMP","L","L1","SHASHANK GUPTA","T Th F 2","CS"],
+    ["CS F351","THEORY OF COMP","T","T1","Staff","F 9","CS"],
+    ["CS F363","COMPILER CONST","L","L1","SHASHANK GUPTA","MW 3 Th 9","CS"],
+    ["CS F364","DESIGN ANAL ALGO","L","L1","ABHISHEK MISHRA","T Th F 5","CS"],
+    ["CS F364","DESIGN ANAL ALGO","T","T1","Asish Bera","F 1","CS"],
+    ["CS F364","DESIGN ANAL ALGO","T","T2","Asish Bera","T 9","CS"],
+    ["CS F364","DESIGN ANAL ALGO","T","T3","Aniket U","F 1","CS"],
+    ["CS F364","DESIGN ANAL ALGO","T","T4","Aniket U","T 9","CS"],
+    ["CS F364","DESIGN ANAL ALGO","T","T5","Priyank J","F 1","CS"],
+    ["CS F364","DESIGN ANAL ALGO","T","T6","Priyank J","T 9","CS"],
+    ["CS F372","OPERATING SYSTEMS","L","L1","JP MISRA","T Th F 3","CS"],
+    ["CS F372","OPERATING SYSTEMS","T","T1","Yashvardhan","F 10","CS"],
+    ["CS F372","OPERATING SYSTEMS","T","T2","Aditya Sharma","T 1","CS"],
+    ["CS F407","AI","L","L1","AMIT DUA","MW 4 T 10","CS"],
+    ["CS F422","PARALLEL COMP","L","L1","HARI BABU","MWF 9","CS"],
+    ["CS F425","DEEP LEARNING","L","L1","PRATIK NARANG","MW 5 Th 10","CS"],
+    ["CS F425","DEEP LEARNING","P","P1","Ghufran A","Th 1 2","CS"],
+    ["CS F425","DEEP LEARNING","P","P2","Ghufran A","F 10 11","CS"],
+    ["CS F426","GRAPH MINING","L","L1","VINTI AGARWAL","MW 4 T 10","CS"],
+    ["CS F437","GENERATIVE AI","L","L1","POONAM GOYAL","MWF 9","CS"],
+    ["CS F437","GENERATIVE AI","P","P1","Sunil Kailash","T 1 2","CS"],
+    ["CS F437","GENERATIVE AI","P","P2","Sunil Kailash","M 10 11","CS"],
+    ["CS G513","NETWORK SECURITY","L","L1","RAJESH KUMAR","T Th F 4","CS"],
+    ["CS G516","ADV DB SYSTEMS","L","L1","YASHVARDHAN","T Th F 5","CS"],
+    ["CS G523","SOFT FOR EMBED","L","L1","SAURABH GANDHI","MW 4 T 10","CS"],
+    ["CS G524","ADV COMP ARCH","L","L1","VIRENDRA S","MW 3 Th 9","CS"],
+    ["CS G653","SOFT ARCH","L","L1","TANMAYA M","T Th F 3","CS"],
+    
+    // EEE / INSTR
+    ["EEE F216","ELEC DEV SIM LAB","P","P1","Pradeep V","Th 7 8","EEE"],
+    ["EEE F241","MICROPROC & INT","L","L1E","MEETHA SHENOY","MW 5 Th 10","EEE"],
+    ["EEE F241","MICROPROC & INT","L","L2C","JP Misra","MW 5 Th 10","EEE"],
+    ["EEE F242","CONTROL SYSTEMS","L","L1","PUNEET MISHRA","T Th F 3","EEE"],
+    ["EEE F242","CONTROL SYSTEMS","L","L2","Prashant K","T Th F 3","EEE"],
+    ["EEE F242","CONTROL SYSTEMS","T","T1","Pawan Ajmera","T 1","EEE"],
+    ["EEE F242","CONTROL SYSTEMS","T","T2","Prashant K","T 1","EEE"],
+    ["EEE F242","CONTROL SYSTEMS","T","T3","Puneet Mishra","T 1","EEE"],
+    ["EEE F242","CONTROL SYSTEMS","T","T4","Hari Om B","T 1","EEE"],
+    ["EEE F242","CONTROL SYSTEMS","T","T5","Aditya Raw","T 1","EEE"],
+    ["EEE F243","SIGNALS & SYSTEMS","L","L1","PAWAN AJMERA","T Th F 2","EEE"],
+    ["EEE F243","SIGNALS & SYSTEMS","L","L2","Sambangi R","T Th F 2","EEE"],
+    ["EEE F243","SIGNALS & SYSTEMS","T","T1","Syed Z","F 9","EEE"],
+    ["EEE F243","SIGNALS & SYSTEMS","T","T2","Sambangi R","F 9","EEE"],
+    ["EEE F243","SIGNALS & SYSTEMS","T","T3","Pankaj Arora","F 9","EEE"],
+    ["EEE F243","SIGNALS & SYSTEMS","T","T4","Pawan Ajmera","F 9","EEE"],
+    ["EEE F243","SIGNALS & SYSTEMS","T","T5","Dinesh Rano","F 9","EEE"],
+    ["EEE F244","MICROELECT CKTS","L","L1","ANU GUPTA","MW 4 T 10","EEE"],
+    ["EEE F244","MICROELECT CKTS","L","L2","Neeraj Mishra","MW 4 T 10","EEE"],
+    ["EEE F244","MICROELECT CKTS","T","T1","Neeraj Mishra","F 1","EEE"],
+    ["EEE F244","MICROELECT CKTS","T","T2","Nitin C","F 1","EEE"],
+    ["EEE F244","MICROELECT CKTS","T","T3","Govind P","F 1","EEE"],
+    ["EEE F244","MICROELECT CKTS","T","T4","Sambangi R","F 1","EEE"],
+    ["EEE F244","MICROELECT CKTS","T","T5","Prashant K","F 1","EEE"],
+    ["EEE F246","E & E CIRCUIT LAB","P","P1","Aparajita D","W 7 8 9","EEE"],
+    ["EEE F312","POWER SYSTEMS","L","L1","HARI OM BANSAL","T Th F 5","EEE"],
+    ["EEE F312","POWER SYSTEMS","T","T1","Hari Om Bansal","W 1","EEE"],
+    ["EEE F312","POWER SYSTEMS","T","T2","Rajneesh K","W 1","EEE"],
+    ["EEE F341","ANALOG ELECT","L","L1","ARNAB HAZRA","MW 3 Th 9","EEE"],
+    ["EEE F341","ANALOG ELECT","L","L2","V K Chaubey","MW 3 Th 9","EEE"],
+    ["EEE F341","ANALOG ELECT","T","T1","Nitin C","T 9","EEE"],
+    ["EEE F341","ANALOG ELECT","T","T2","Satyendra M","T 9","EEE"],
+    ["EEE F341","ANALOG ELECT","T","T3","Govind P","T 9","EEE"],
+    ["EEE F341","ANALOG ELECT","T","T4","Sainath B","T 9","EEE"],
+    ["EEE F341","ANALOG ELECT","T","T5","Praveen K","T 9","EEE"],
+    ["EEE F341","ANALOG ELECT","T","T6","Abhijit A","T 9","EEE"],
+    ["EEE F341","ANALOG ELECT","P","P1","Shreya C","T 7 8","EEE"],
+    ["EEE F341","ANALOG ELECT","P","P2","Nilesh J","Th 7 8","EEE"],
+    ["EEE F341","ANALOG ELECT","P","P3","Ananya G","T 1 2","EEE"],
+    ["EEE F341","ANALOG ELECT","P","P4","Pradeep V","Th 1 2","EEE"],
+    ["EEE F341","ANALOG ELECT","P","P5","Anita K","F 1 2","EEE"],
+    ["EEE F341","ANALOG ELECT","P","P6","Anita K","M 4 5","EEE"],
+    ["EEE F341","ANALOG ELECT","P","P7","Rohit K","M 7 8","EEE"],
+    ["EEE F341","ANALOG ELECT","P","P8","Shubham G","W 7 8","EEE"],
+    ["EEE F342","POWER ELECTRONICS","L","L1","DHEERENDRA S","T Th F 4","EEE"],
+    ["EEE F342","POWER ELECTRONICS","L","L2","Rajneesh K","T Th F 4","EEE"],
+    ["EEE F342","POWER ELECTRONICS","T","T1","Rajneesh K","M 1","EEE"],
+    ["EEE F342","POWER ELECTRONICS","T","T2","Dheerendra S","M 1","EEE"],
+    ["EEE F342","POWER ELECTRONICS","T","T3","Ashish Patel","M 1","EEE"],
+    ["EEE F342","POWER ELECTRONICS","T","T4","Aditya Raw","M 1","EEE"],
+    ["EEE F342","POWER ELECTRONICS","P","P1","Vedant Vyas","T 7 8","EEE"],
+    ["EEE F342","POWER ELECTRONICS","P","P2","Saurabh N","Th 7 8","EEE"],
+    ["EEE F342","POWER ELECTRONICS","P","P3","Shubham P","T 1 2","EEE"],
+    ["EEE F342","POWER ELECTRONICS","P","P4","Shubham P","Th 1 2","EEE"],
+    ["EEE F342","POWER ELECTRONICS","P","P5","Shubham T","F 1 2","EEE"],
+    ["EEE F342","POWER ELECTRONICS","P","P6","Shubham T","F 7 8","EEE"],
+    ["EEE F348","FPGA SYS DESIGN","P","P1","Saurabh N","T 7 8","EEE"],
+    ["EEE F348","FPGA SYS DESIGN","P","P2","Aishwarya T","Th 7 8","EEE"],
+    ["EEE F416","DIGITAL COMM","L","L1","SHARDA T","MWF 9","EEE"],
+    ["EEE F419","FLEXIBLE ELECT","L","L1","NAVNEET G","T Th F 2","EEE"],
+    ["EEE F419","FLEXIBLE ELECT","P","P1","KM Neeraj","T 7 8","EEE"],
+    ["EEE F424","SMART GRID","L","L1","HITESH DATT","T Th F 3","EEE"],
+    ["EEE F430","GREEN COMM","L","L1","SAINATH B","MW 5 Th 10","EEE"],
+    ["EEE F431","MOBILE TELECOM","L","L1","SANDEEP J","MW 5 Th 10","EEE"],
+    ["EEE F432","MEDICAL INSTR","L","L1","KARUNESH G","MW 4 T 10","EEE"],
+    ["EEE F437","SEMICOND FAB","L","L1","RAHUL KUMAR","T Th F 3","EEE"],
+    ["EEE F437","SEMICOND FAB","P","P1","Keerthana P","Th 7 8","EEE"],
+    ["EEE F438","ELECTRIC VEHICLE","L","L1","HITESH DATT","MW 4 T 10","EEE"],
+    ["EEE F439","COMM FOR DRONE","L","L1","VINAY CHAMOLA","MW 4 T 10","EEE"],
+    ["EEE F439","COMM FOR DRONE","P","P1","Uday Mittal","T 7 8","EEE"],
+    ["EEE F439","COMM FOR DRONE","P","P2","Shubham S","Th 7 8","EEE"],
+    ["EEE F474","ANTENNA THEORY","L","L1","DINESH RANO","MWF 7","EEE"],
+    ["EEE F474","ANTENNA THEORY","P","P1","Satyam","T 7 8","EEE"],
+    ["EEE F477","MODEL FIELD NANO","L","L1","V K CHAUBEY","T Th F 2","EEE"],
+    ["EEE G510","RF MICROELECT","L","L1","PANKAJ ARORA","T Th F 3","EEE"],
+    ["EEE G523","PROCESSOR ARCH","L","L1","SAI SESHA","MW 5 Th 10","EEE"],
+    ["EEE G523","PROCESSOR ARCH","P","P1","Laxmi","T 7 8","EEE"],
+    ["EEE G525","WIRELESS COMM","L","L1","SYED Z","T Th F 2","EEE"],
+    ["EEE G525","WIRELESS COMM","P","P1","Satyam","W 8 9","EEE"],
+    ["EEE G526","LIGHTWAVE ENGG","L","L1","RAHUL S","MW 4 T 10","EEE"],
+    ["EEE G526","LIGHTWAVE ENGG","P","P1","Abhishek K","M 8 9","EEE"],
+    ["EEE G540","ADV CONTROL TECH","L","L1","Rayees Ahmad","MW 5 Th 10","EEE"],
+    ["EEE G540","ADV CONTROL TECH","P","P1","Vedant Vyas","T 4 5","EEE"],
+    ["EEE G548","DISTR EMBED SYS","L","L1","VINAY CHAMOLA","MWF 8","EEE"],
+    ["EEE G552","SOLID STATE DRIV","L","L1","ASHISH PATEL","T Th F 2","EEE"],
+    ["EEE G552","SOLID STATE DRIV","P","P1","Ashish Patel","Th 4 5","EEE"],
+    ["EEE G641","APPLIED EST THEO","L","L1","SHUBHA SHARMA","MW 3 Th 9","EEE"],
+    
+    // MECH & MFG (ME/MF)
+    ["ME F218","ADV MECH SOLIDS","L","L1","MANI SANKAR","T Th 3","ME"],
+    ["ME F218","ADV MECH SOLIDS","P","P1","Amit Kumar","F 6 7 8","ME"],
+    ["ME F218","ADV MECH SOLIDS","T","T1","Murali P","F 3","ME"],
+    ["ME F218","ADV MECH SOLIDS","T","T2","Amit Rajnarayan","F 3","ME"],
+    ["ME F218","ADV MECH SOLIDS","T","T3","Venkatesh K","F 3","ME"],
+    ["ME F219","MANUF PROCESS","L","L1","GEETA BHATT","MW 5 Th 10","ME"],
+    ["ME F219","MANUF PROCESS","P","P1","Anuj Sharma","S 1 2","ME"],
+    ["ME F219","MANUF PROCESS","P","P2","Staff","T 7 8","ME"],
+    ["ME F219","MANUF PROCESS","P","P3","Radha Raman","M 1 2","ME"],
+    ["ME F219","MANUF PROCESS","P","P4","Sunil S","W 1 2","ME"],
+    ["ME F219","MANUF PROCESS","T","T1","Radha Raman","F 1","ME"],
+    ["ME F219","MANUF PROCESS","T","T2","Tribeni Roy","F 1","ME"],
+    ["ME F219","MANUF PROCESS","T","T3","Geeta Bhatt","F 1","ME"],
+    ["ME F220","HEAT TRANSFER","L","L1","SRINIVASAN P","T Th F 2","ME"],
+    ["ME F220","HEAT TRANSFER","P","P1","Srinibas T","T 7 8","ME"],
+    ["ME F220","HEAT TRANSFER","P","P2","Chennu R","Th 7 8","ME"],
+    ["ME F220","HEAT TRANSFER","P","P3","Aashutosh K","M 1 2","ME"],
+    ["ME F220","HEAT TRANSFER","P","P4","Biswadip S","W 1 2","ME"],
+    ["ME F220","HEAT TRANSFER","T","T1","Srinibas T","F 9","ME"],
+    ["ME F220","HEAT TRANSFER","T","T2","Biswadip S","F 9","ME"],
+    ["ME F220","HEAT TRANSFER","T","T3","Chennu R","F 9","ME"],
+    ["ME F221","MECH & MACHINES","L","L1","JITENDRA R","MW 4 T 10","ME"],
+    ["ME F221","MECH & MACHINES","T","T1","Sharad S","T 1","ME"],
+    ["ME F221","MECH & MACHINES","T","T2","Jitendra R","T 1","ME"],
+    ["ME F221","MECH & MACHINES","T","T3","Madhurjya D","T 1","ME"],
+    ["ME F221","MECH & MACHINES","T","T4","Arun Jalan","T 1","ME"],
+    ["ME F316","MANUF MGMT","L","L1","ABHIJEET K","MW 3","ME"],
+    ["ME F316","MANUF MGMT","T","T1","Amit Jain","Th 1","ME"],
+    ["ME F318","CAD","L","L1","AMIT SINGH","T 9","ME"],
+    ["ME F318","CAD","P","P1","Amit Singh","T 1 2","ME"],
+    ["ME F318","CAD","P","P2","Vedanshu S","T 1 2","ME"],
+    ["ME F318","CAD","P","P3","Aswanth V","T 7 8","ME"],
+    ["ME F318","CAD","P","P4","Muzammil A","T 7 8","ME"],
+    ["ME F319","VIBRATIONS","L","L1","ARUN JALAN","T Th F 4","ME"],
+    ["ME F319","VIBRATIONS","T","T1","Arun Jalan","M 1","ME"],
+    ["ME F319","VIBRATIONS","T","T2","Madhurjya D","M 1","ME"],
+    ["ME F319","VIBRATIONS","T","T3","Jitendra R","M 1","ME"],
+    ["ME F319","VIBRATIONS","T","T4","Sharad S","M 1","ME"],
+    ["ME F320","ENGG OPTIMIZ","L","L1","RAJESH MISHRA","T Th F 5","ME"],
+    ["ME F320","ENGG OPTIMIZ","T","T1","Geeta Bhatt","W 1","ME"],
+    ["ME F320","ENGG OPTIMIZ","T","T2","Murali P","W 1","ME"],
+    ["ME F320","ENGG OPTIMIZ","T","T3","Tufan Bera","W 1","ME"],
+    ["ME F320","ENGG OPTIMIZ","T","T4","Krishnaram K","W 1","ME"],
+    ["ME F320","ENGG OPTIMIZ","T","T5","Pradeep S","W 1","ME"],
+    ["ME F325","SOFT MATTER","L","L1","AR HARIKRISHNAN","T Th F 2","ME"],
+    ["ME F341","PRIMEMOVERS","L","L1","MANOJ SONI","MW 2","ME"],
+    ["ME F341","PRIMEMOVERS","P","P1","Shyam Sunder","F 1 2","ME"],
+    ["ME F341","PRIMEMOVERS","P","P2","Suvanjan B","Th 9 10","ME"],
+    ["ME F341","PRIMEMOVERS","P","P3","Suvanjan B","T 1 2","ME"],
+    ["ME F341","PRIMEMOVERS","P","P4","S Rahul","Th 1 2","ME"],
+    ["ME F424","ENERGY MGMT","L","L1","MANOJ SONI","T Th F 2","ME"],
+    ["ME F425","ADDITIVE MANUF","L","L1","RADHA RAMAN","MWF 9","ME"],
+    ["ME F430","FLUID STRUCT","L","L1","GAURAV SHARMA","MW 5 Th 10","ME"],
+    ["ME F434","DIGITAL TWINS","L","L1","MADHURJYA D","MW 4 T 10","ME"],
+    ["ME F441","AUTO VEHICLES","L","L1","SRINIBAS T","T Th F 3","ME"],
+    ["ME F452","COMPOSITE MAT","L","L1","FAIZAN RASHID","MWF 7","ME"],
+    ["ME F485","NUM FL FLOW","L","L1","SHYAM SUNDER","MWF 7","ME"],
+    ["ME G515","CFD","L","L1","ANEESH A M","T Th F 4","ME"],
+    ["ME G536","THERMAL EQUIP","L","L1","CHENNU R","MW 4 T 10","ME"],
+    ["ME G611","CAD ANALYSIS","L","L1","MURALI P","MW 5 Th 10","ME"],
+    ["ME G613","FINITE ELEM","L","L1","GAURAV WATTS","T Th F 2","ME"],
+    ["MF F219","OPERATIONS MGMT","L","L1","GIRISH GARG","T Th F 3","ME"],
+    ["MF F219","OPERATIONS MGMT","T","T1","Amit Jain","F 1","ME"],
+    ["MF F220","METROLOGY & QA","L","L1","TRIBENI ROY","MW 5","ME"],
+    ["MF F220","METROLOGY & QA","T","T1","Tribeni Roy","Th 10","ME"],
+    ["MF F220","METROLOGY & QA","P","P1","Amgoth Anitha","T 7 8","ME"],
+    ["MF F221","MECH & MACHINES","L","L1","JITENDRA R","MW 4 T 10","ME"],
+    ["MF F221","MECH & MACHINES","T","T1","Sharad S","T 1","ME"],
+    ["MF F221","MECH & MACHINES","T","T2","Jitendra R","T 1","ME"],
+    ["MF F222","CASTING WELDING","L","L1","SUNIL S","T Th F 2","ME"],
+    ["MF F222","CASTING WELDING","T","T1","Sunil S","F 9","ME"],
+    ["MF F222","CASTING WELDING","P","P1","Deepika C","Th 7 8","ME"],
+    ["MF F317","CAD CAM","L","L1","TUFAN BERA","MW 2","ME"],
+    ["MF F317","CAD CAM","T","T1","Tufan Bera","T 9","ME"],
+    ["MF F317","CAD CAM","P","P1","Pronamika B","T 7 8","ME"],
+    ["MF F317","CAD CAM","P","P2","MD Jawed","Th 7 8","ME"],
+    ["MF F317","CAD CAM","P","P3","Akash P","T 1 2","ME"],
+    ["MF F317","CAD CAM","P","P4","Abhishek T","Th 1 2","ME"],
+    ["MF F318","NON TRAD MFG","L","L1","ANUJ SHARMA","MW 3 Th 9","ME"],
+    ["MF F318","NON TRAD MFG","T","T1","Anuj Sharma","M 1","ME"],
+    ["MF F319","SUPPLY CHAIN","L","L1","SRIKANTA R","MWF 8","ME"],
+    ["MF F319","SUPPLY CHAIN","T","T1","Rahul R","M 1","ME"],
+    ["MF F319","SUPPLY CHAIN","T","T2","Hitesh S","F 1","ME"],
+    ["MF F320","ENGG OPTIMIZ","L","L1","RAJESH MISHRA","T Th F 5","ME"],
+    ["MF F421","SUPPLY CHAIN","L","L1","SRIKANTA R","MWF 8","ME"],
 
-        {c:"CS F212", n:"Database Sys", cr:4, t:"L", s:"L1", i:"Hari Babu", tm:"MW 4 T 10", cat:"CS"},
-        {c:"CS F212", n:"Database Sys", cr:4, t:"P", s:"P1", i:"Ravi Sharma", tm:"T 1 2", cat:"CS"},
-        {c:"CS F212", n:"Database Sys", cr:4, t:"P", s:"P2", i:"Anukriti", tm:"Th 1 2", cat:"CS"},
+    // CIVIL
+    ["CE F241","ANALYSIS STRUCT","L","L1","MANOJ KUMAR","M 4 T 10 W 9","CIV"],
+    ["CE F241","ANALYSIS STRUCT","T","T1","Manoj Kumar","F 1","CIV"],
+    ["CE F241","ANALYSIS STRUCT","T","T2","Mukund L","F 1","CIV"],
+    ["CE F242","CONSTRUCTION PLAN","L","L1","RAJIV GUPTA","MW 5 Th 10","CIV"],
+    ["CE F242","CONSTRUCTION PLAN","T","T1","Rajiv Gupta","T 1","CIV"],
+    ["CE F243","SOIL MECHANICS","L","L1","SAYANTAN C","T Th F 2","CIV"],
+    ["CE F243","SOIL MECHANICS","T","T1","Sayantan C","F 9","CIV"],
+    ["CE F243","SOIL MECHANICS","T","T2","Rakshanda","F 9","CIV"],
+    ["CE F243","SOIL MECHANICS","P","P1","Rakshanda","T 7 8","CIV"],
+    ["CE F243","SOIL MECHANICS","P","P2","Rakshanda","Th 7 8","CIV"],
+    ["CE F244","HIGHWAY ENGG","L","L1","DURGESH V","T Th F 3","CIV"],
+    ["CE F244","HIGHWAY ENGG","T","T1","Balram Sahoo","M 9","CIV"],
+    ["CE F244","HIGHWAY ENGG","T","T2","Soni Kumari","M 9","CIV"],
+    ["CE F244","HIGHWAY ENGG","P","P1","Nishant B","T 7 8","CIV"],
+    ["CE F244","HIGHWAY ENGG","P","P2","Vijay B","Th 7 8","CIV"],
+    ["CE F321","HYDROLOGY","L","L1","SELVA BALAJI","MW 3 Th 9","CIV"],
+    ["CE F321","HYDROLOGY","T","T1","Selva Balaji","Th 1","CIV"],
+    ["CE F321","HYDROLOGY","T","T2","Aswathy S","Th 1","CIV"],
+    ["CE F323","ENVIRON ENGG","L","L1","PUBALI MANDAL","MWF 8","CIV"],
+    ["CE F331","IN-SITU GTECH","L","L1","SAYANTAN C","MW 4 T 10","CIV"],
+    ["CE F342","WATER WASTEWATER","L","L1","ANUPAM S","T Th F 4","CIV"],
+    ["CE F342","WATER WASTEWATER","T","T1","Anupam S","M 1","CIV"],
+    ["CE F342","WATER WASTEWATER","T","T2","Arjun Gautam","M 1","CIV"],
+    ["CE F342","WATER WASTEWATER","P","P1","Rallapalli S","T 7 8","CIV"],
+    ["CE F342","WATER WASTEWATER","P","P2","Kamalesh K","Th 7 8","CIV"],
+    ["CE F343","STEEL STRUCT","L","L1","DIPENDU B","T Th F 5","CIV"],
+    ["CE F343","STEEL STRUCT","T","T1","Dipendu B","W 1","CIV"],
+    ["CE F343","STEEL STRUCT","T","T2","Rajesh K","W 1","CIV"],
+    ["CE F345","COMP GEOMECH","L","L1","RAKSHANDA","MWF 7","CIV"],
+    ["CE F415","PREST CONCRETE","L","L1","SUBHASIS P","T Th F 2","CIV"],
+    ["CE F416","COMP APPL CE","L","L1","GUNTU R","T Th F 2","CIV"],
+    ["CE F419","GEOTECH EQ","L","L1","RAVI KANT","MWF 9","CIV"],
+    ["CE F422","URBAN HYDROLOGY","L","L1","GUNTU R","MW 5 Th 10","CIV"],
+    ["CE F425","AIRPORT RAIL","L","L1","MUTHUKUMAR","MWF 9","CIV"],
+    ["CE F429","DES FOUNDATION","L","L1","RAVI KANT","T Th F 3","CIV"],
+    ["CE F431","GEO INFO SYS","L","L1","SANCHARI T","T Th F 3","CIV"],
+    ["CE F432","STRUCT DYNAMICS","L","L1","MUTHUKUMAR","T Th F 3","CIV"],
+    ["CE F433","REMOTE SENSING","L","L1","SANCHARI T","MWF 9","CIV"],
+    ["CE F435","INTRO FEM","L","L1","SHUVENDU P","MW 4 T 10","CIV"],
+    
+    // CHEMICAL
+    ["CHE F241","HEAT TRANSFER","L","L1","SURESH GUPTA","T Th F 3","CHE"],
+    ["CHE F241","HEAT TRANSFER","T","T1","Somak C","T 8","CHE"],
+    ["CHE F241","HEAT TRANSFER","T","T2","Suresh Gupta","T 8","CHE"],
+    ["CHE F242","NUM METHODS","L","L1","HARE KRISHNA","T Th F 2","CHE"],
+    ["CHE F242","NUM METHODS","T","T1","Hare Krishna","F 9","CHE"],
+    ["CHE F242","NUM METHODS","T","T2","Priya C","F 9","CHE"],
+    ["CHE F243","MAT SCI ENGG","L","L1","BANASRI ROY","MW 5 Th 10","CHE"],
+    ["CHE F243","MAT SCI ENGG","T","T1","Somak C","T 1","CHE"],
+    ["CHE F244","SEPARATION I","L","L1","Pradipta C","MW 4 T 10","CHE"],
+    ["CHE F244","SEPARATION I","T","T1","Aditya Singh","F 1","CHE"],
+    ["CHE F244","SEPARATION I","T","T2","Pratik N","F 1","CHE"],
+    ["CHE F315","ML FOR CHE","L","L1","AJAYA PANI","MWF 8","CHE"],
+    ["CHE F341","CHEM ENG LAB II","P","P1","JAY PANDEY","T Th 7 8","CHE"],
+    ["CHE F342","PROCESS CONTROL","L","L1","AJAYA PANI","MW 3 Th 9","CHE"],
+    ["CHE F342","PROCESS CONTROL","P","P1","Saikat B","MW 1 2","CHE"],
+    ["CHE F342","PROCESS CONTROL","T","T1","Aditya Singh","T 9","CHE"],
+    ["CHE F342","PROCESS CONTROL","T","T2","Amit Jain","T 9","CHE"],
+    ["CHE F343","PROC DES PRINC","L","L1","PRADIPTA C","T Th F 4","CHE"],
+    ["CHE F343","PROC DES PRINC","T","T1","Pradipta C","Th 1","CHE"],
+    ["CHE F343","PROC DES PRINC","T","T2","Smita R","Th 1","CHE"],
+    ["CHE F413","PLANT SAFETY","L","L1","PRIYA C","MW 4 T 10","CHE"],
+    ["CHE F414","TRANSPORT PHENO","L","L1","BHANU VARDHAN","T Th F 2","CHE"],
+    ["CHE F418","MODEL SIMUL","L","L1","JAY PANDEY","MW 5 Th 10","CHE"],
+    ["CHE F419","CHEM PROC TECH","L","L1","SMITA R","T Th F 3","CHE"],
+    ["CHE F423","MEMBRANE SCI","L","L1","SOMAK C","MWF 9","CHE"],
 
-        {c:"CS F213", n:"OOP", cr:4, t:"L", s:"L1", i:"Tanmaya M", tm:"MWF 8", cat:"CS"},
-        {c:"CS F213", n:"OOP", cr:4, t:"P", s:"P1", i:"Kartikey", tm:"F 1 2", cat:"CS"},
-        {c:"CS F213", n:"OOP", cr:4, t:"P", s:"P2", i:"Jaya", tm:"Th 7 8", cat:"CS"},
+    // PHARMACY
+    ["PHA F214","ANATOMY PHYSIO","L","L1","PRAGYANSHU K","T Th 3","PHA"],
+    ["PHA F214","ANATOMY PHYSIO","T","T1","Pragyanshu K","F 3","PHA"],
+    ["PHA F214","ANATOMY PHYSIO","P","P1","Jayant Singh","F 1 2","PHA"],
+    ["PHA F214","ANATOMY PHYSIO","P","P2","Jayant Singh","T 1 2","PHA"],
+    ["PHA F215","MOL BIO IMMUNO","L","L1","ANIRUDDHA ROY","MW 5","PHA"],
+    ["PHA F215","MOL BIO IMMUNO","T","T1","Aniruddha Roy","Th 10","PHA"],
+    ["PHA F216","PHARMA FORMUL I","L","L1","ANKIT JAIN","T Th 4","PHA"],
+    ["PHA F216","PHARMA FORMUL I","T","T1","Ankit Jain","M 6","PHA"],
+    ["PHA F216","PHARMA FORMUL I","P","P1","Sakshi Priya","T 7 8","PHA"],
+    ["PHA F216","PHARMA FORMUL I","P","P2","Yashika Tomar","Th 1 2","PHA"],
+    ["PHA F217","PHARMA MICROBIO","L","L1","PRAGYANSHU K","MW 4","PHA"],
+    ["PHA F217","PHARMA MICROBIO","T","T1","Trivedi Mansi","F 1","PHA"],
+    ["PHA F217","PHARMA MICROBIO","P","P1","Jagdish Chand","M 1 2 3","PHA"],
+    ["PHA F217","PHARMA MICROBIO","P","P2","Jagdish Chand","W 1 2 3","PHA"],
+    ["PHA F217","PHARMA MICROBIO","P","P3","Vagesh Verma","T 9 10 11","PHA"],
+    ["PHA F241","PHARMA CHEM","L","L1","SANDEEP S","MW 9","PHA"],
+    ["PHA F241","PHARMA CHEM","T","T1","Sandeep S","F 2","PHA"],
+    ["PHA F241","PHARMA CHEM","P","P1","Shailesh Mani","T 1 2","PHA"],
+    ["PHA F241","PHARMA CHEM","P","P2","Shailesh Mani","S 1 2","PHA"],
+    ["PHA F244","PHYSICAL PHARM","L","L1","ANIRUDDHA ROY","T Th 3","PHA"],
+    ["PHA F244","PHYSICAL PHARM","T","T1","Aniruddha Roy","F 3","PHA"],
+    ["PHA F244","PHYSICAL PHARM","P","P1","Sonia Guha","T 7 8","PHA"],
+    ["PHA F244","PHYSICAL PHARM","P","P2","Sonia Guha","Th 7 8","PHA"],
+    ["PHA F316","REGULATORY SCI","L","L1","G ANIL","MWF 9","PHA"],
+    ["PHA F316","REGULATORY SCI","T","T1","G Anil","F 4","PHA"],
+    ["PHA F316","REGULATORY SCI","P","P1","Trivedi Mansi","Th 7 8","PHA"],
+    ["PHA F316","REGULATORY SCI","P","P2","Trivedi Mansi","T 7 8","PHA"],
+    ["PHA F341","PHARMACOLOGY II","L","L1","G ANIL","T Th 4","PHA"],
+    ["PHA F342","MEDICINAL CHEM","L","L1","R MAHESH","MW 3","PHA"],
+    ["PHA F342","MEDICINAL CHEM","T","T1","R Mahesh","Th 10","PHA"],
+    ["PHA F342","MEDICINAL CHEM","P","P1","Ala Chandu","T 7 8 9","PHA"],
+    ["PHA F342","MEDICINAL CHEM","P","P2","Ala Chandu","Th 7 8 9","PHA"],
+    ["PHA F343","FORENSIC PHARM","L","L1","GAUTAM S","MW 2","PHA"],
+    ["PHA F343","FORENSIC PHARM","T","T1","Gautam S","T 10","PHA"],
+    ["PHA F344","NATURAL DRUGS","L","L1","ATISH PAUL","T Th 5","PHA"],
+    ["PHA F344","NATURAL DRUGS","T","T1","Atish Paul","F 5","PHA"],
+    ["PHA F344","NATURAL DRUGS","P","P1","Bommana B","T 9 10","PHA"],
+    ["PHA F344","NATURAL DRUGS","P","P2","Samarth D","F 1 2","PHA"],
+    ["PHA F416","SYNTHETIC DRUGS","L","L1","JAGPREET S","T Th F 2","PHA"],
+    ["PHA F417","PHARMACOECON","L","L1","MM PANDEY","T Th F 3","PHA"],
+    ["PHA F418","BIOPHARMACEUT","L","L1","MM PANDEY","MW 4 T 10","PHA"],
+    ["PHA F422","COSMETICS SCI","L","L1","GAUTAM K","MWF 7","PHA"],
 
-        {c:"CS F241", n:"Microprocessors", cr:4, t:"L", s:"L1", i:"Meetha Shenoy", tm:"MW 5 Th 10", cat:"CS"},
-        {c:"CS F241", n:"Microprocessors", cr:4, t:"T", s:"T1", i:"Sai Sesha", tm:"W 9", cat:"CS"},
-        {c:"CS F241", n:"Microprocessors", cr:4, t:"P", s:"P1", i:"Aishwarya", tm:"T 7 8", cat:"CS"},
-
-        {c:"CS F303", n:"Comp Networks", cr:4, t:"L", s:"L1", i:"Virendra Singh", tm:"T Th F 4", cat:"CS"},
-        {c:"CS F303", n:"Comp Networks", cr:4, t:"P", s:"P1", i:"Harshvardhan", tm:"M 1 2", cat:"CS"},
-
-        // --- EEE CORE ---
-        {c:"EEE F216", n:"Elec Dev Sim Lab", cr:2, t:"P", s:"P1", i:"Pradeep Verma", tm:"Th 7 8", cat:"EEE"},
-        {c:"EEE F242", n:"Control Systems", cr:3, t:"L", s:"L1", i:"Puneet Mishra", tm:"T Th F 3", cat:"EEE"},
-        {c:"EEE F242", n:"Control Systems", cr:3, t:"T", s:"T1", i:"Pawan Ajmera", tm:"F 9", cat:"EEE"},
-        
-        // --- MECH CORE ---
-        {c:"ME F218", n:"Adv Mech Solids", cr:2, t:"L", s:"L1", i:"Mani Sankar", tm:"T Th 3", cat:"ME"},
-        {c:"ME F218", n:"Adv Mech Solids", cr:2, t:"P", s:"P1", i:"Amit Kumar", tm:"F 6 7 8", cat:"ME"},
-        {c:"ME F219", n:"Manuf Proc", cr:4, t:"L", s:"L1", i:"Geeta Bhatt", tm:"MW 5 Th 10", cat:"ME"},
-        {c:"ME F219", n:"Manuf Proc", cr:4, t:"T", s:"T1", i:"Radha Raman", tm:"F 1", cat:"ME"},
-        {c:"ME F219", n:"Manuf Proc", cr:4, t:"P", s:"P1", i:"Anuj Sharma", tm:"S 1 2", cat:"ME"},
-
-        // --- ELECTIVES / MINORS ---
-        {c:"FIN F311", n:"DRM", cr:3, t:"L", s:"L1", i:"Aditya Sharma", tm:"MWF 8", cat:"FIN"},
-        {c:"FIN F212", n:"FundaFin", cr:3, t:"L", s:"L1", i:"Aprajita Pandey", tm:"MWF 7", cat:"FIN"},
-        {c:"ECON F241", n:"Econometrics", cr:3, t:"L", s:"L1", i:"NV Murthy", tm:"T Th F 4", cat:"FIN"},
-        {c:"GS F232", n:"Psychology", cr:3, t:"L", s:"L1", i:"Tanu Shukla", tm:"MWF 8", cat:"HUM"},
-        {c:"BITS F114", n:"Gen Math II", cr:3, t:"L", s:"L1", i:"Ashish Tiwari", tm:"MW 3 Th 9", cat:"HUM"}
+    // MSC SCIENCES
+    ["MATH F211","MATHEMATICS III","L","L1","KRISHNENDRA S","MWF 9","SCI"],
+    ["MATH F231","NUMBER THEORY","L","L1","PRAMOD E","MWF 7","SCI"],
+    ["MATH F231","NUMBER THEORY","T","T1","Pramod E","M 10","SCI"],
+    ["MATH F241","MATH METHODS","L","L1","TRILOK MATHUR","MW 4 T 10","SCI"],
+    ["MATH F241","MATH METHODS","T","T1","Trilok Mathur","T 1","SCI"],
+    ["MATH F242","OPERATIONS RES","L","L1","CHANDRA S","MW 5 Th 10","SCI"],
+    ["MATH F242","OPERATIONS RES","T","T1","Chandra S","F 1","SCI"],
+    ["MATH F243","GRAPHS NETWORK","L","L1","KRISHNENDRA S","T Th F 2","SCI"],
+    ["MATH F243","GRAPHS NETWORK","T","T1","Jitender K","F 9","SCI"],
+    ["MATH F243","GRAPHS NETWORK","T","T2","Krishnendra S","F 9","SCI"],
+    ["MATH F244","MEASURE INTEG","L","L1","BALRAM DUBEY","T Th F 3","SCI"],
+    ["MATH F244","MEASURE INTEG","T","T1","Balram Dubey","W 9","SCI"],
+    ["MATH F317","SAMPLING THEORY","L","L1","SHAILESH T","T Th F 2","SCI"],
+    ["MATH F341","FUNCTIONAL ANAL","L","L1","SHAILESH T","T Th F 4","SCI"],
+    ["MATH F342","DIFF GEOMETRY","L","L1","SANGITA YADAV","MW 3 Th 9","SCI"],
+    ["MATH F343","PARTIAL DIFF EQ","L","L1","DEVENDRA K","T Th F 5","SCI"],
+    ["MATH F343","PARTIAL DIFF EQ","T","T1","Devendra K","W 1","SCI"],
+    ["MATH F353","STAT INFERENCE","L","L1","SUMANTA P","MW 4 T 10","SCI"],
+    
+    // FIN / ECON / MGMT
+    ["ECON F211","PRIN ECONOMICS","L","L1","RAHUL ARORA","MWF 8","FIN"],
+    ["ECON F211","PRIN ECONOMICS","L","L2","Shrabana T","T Th F 5","FIN"],
+    ["ECON F211","PRIN ECONOMICS","T","T1","Ayushi Sharma","M 9","FIN"],
+    ["ECON F211","PRIN ECONOMICS","T","T2","Diksha K","M 1","FIN"],
+    ["ECON F211","PRIN ECONOMICS","T","T3","Geetali","M 1","FIN"],
+    ["ECON F211","PRIN ECONOMICS","T","T4","Hitesh K","M 1","FIN"],
+    ["ECON F211","PRIN ECONOMICS","T","T5","Ishawar C","M 1","FIN"],
+    ["ECON F212","FUNDA FIN ACC","L","L1","APRAJITA P","MWF 7","FIN"],
+    ["ECON F215","COMP MTHD ECON","L","L1","SURUCHI S","T Th F 2","FIN"],
+    ["ECON F241","ECONOMETRICS","L","L1","NV MURTHY","T Th F 4","FIN"],
+    ["ECON F241","ECONOMETRICS","T","T1","Shrabana T","T 1","FIN"],
+    ["ECON F242","MICROECONOMICS","L","L1","GEETILAXMI M","MW 4 T 10","FIN"],
+    ["ECON F242","MICROECONOMICS","T","T1","Geetilaxmi M","F 1","FIN"],
+    ["ECON F243","MACROECONOMICS","L","L1","ARUN K GIRI","MW 5 Th 10","FIN"],
+    ["ECON F243","MACROECONOMICS","T","T1","Arun K Giri","W 9","FIN"],
+    ["ECON F244","ECON OF GROWTH","L","L1","Arun K Giri","T Th F 5","FIN"],
+    ["ECON F315","FINANCIAL MGMT","L","L1","ARYA KUMAR","MWF 9","FIN"],
+    ["ECON F341","PUBLIC FIN","L","L1","BALAKRUSHNA P","MW 3 Th 9","FIN"],
+    ["ECON F342","APPLIED ECON","L","L1","RAHUL ARORA","MW 2 T 9","FIN"],
+    ["ECON F354","DERIV RISK MGT","L","L1","ADITYA SHARMA","MWF 8","FIN"],
+    ["FIN F311","DERIV RISK MGT","L","L1","ADITYA SHARMA","MWF 8","FIN"],
+    ["FIN F315","FINANCIAL MGMT","L","L1","ARYA KUMAR","MWF 9","FIN"],
+    ["FIN F414","FIN RISK ANAL","L","L1","BYOMAKESH D","MWF 7","FIN"],
+    ["MGTS F211","PRIN MANAGEMENT","L","L1","JYOTI","MWF 7","FIN"],
+    ["MGTS F211","PRIN MANAGEMENT","L","L2","Jyoti","MW 3 Th 9","FIN"],
+    ["MGTS F211","PRIN MANAGEMENT","T","T1","Jyoti","M 9","FIN"],
+    ["MGTS F211","PRIN MANAGEMENT","T","T2","Jayashree M","M 9","FIN"],
+    ["MGTS F211","PRIN MANAGEMENT","T","T3","Daitri T","M 1","FIN"],
+    
+    // HUMANITIES
+    ["GS F223","INTRO MASS COMM","L","L1","SUSHILA S","T Th F 5","HUM"],
+    ["GS F232","INTRO PSYCHOLOGY","L","L1","TANU SHUKLA","MWF 8","HUM"],
+    ["GS F233","PUBLIC POLICY","L","L1","NATASHA H","MWF 8","HUM"],
+    ["GS F241","CREATIVE WRITING","L","L1","DEVIKA","T Th F 3","HUM"],
+    ["GS F245","EFFECTIVE PUB SP","L","L1","PUSHP LATA","MW 4 T 10","HUM"],
+    ["HSS F222","LINGUISTICS","L","L1","SANJIV C","MWF 8","HUM"],
+    ["HSS F235","INTRO PHILOSOPHY","L","L1","ANUPAM YADAV","T Th F 4","HUM"],
+    ["HSS F334","BHAGAVAD GITA","L","L1","VINAY CHAMOLA","T Th F 5","HUM"],
+    ["BITS F225","ENVIRONMENTAL STUDIES","L","L1","B VANI","MWF 10","BITS"]
     ];
 
     let mySchedule = [];
 
-    // ============================================
+    // ==========================================
     // 2. PARSING & LOGIC
-    // ============================================
-
+    // ==========================================
+    
     function parseTime(str) {
         if(!str) return [];
+        let clean = str.replace(/Th/g,'H');
         let slots = [];
-        let clean = str.replace(/Th/g, 'H'); // H for Thursday
+        // Matches pairs like "MW 5" or "T 9" or "T Th F 2"
         let matches = clean.matchAll(/([A-Z]+)\s*([\d\s]+)/g);
-        
-        for (const match of matches) {
-            let dayStr = match[1];
-            let nums = match[2].trim().split(/\s+/).map(Number);
-            for (let char of dayStr) {
-                let d = char === 'H' ? 'Th' : char;
-                nums.forEach(n => {
-                    if(n>0 && n<=11) slots.push({d, h:n});
-                });
+        for(const m of matches) {
+            let days = m[1];
+            let hours = m[2].trim().split(/\s+/).map(Number);
+            for(let d of days) {
+                let day = d === 'H' ? 'Th' : d;
+                hours.forEach(h => { if(h>=1 && h<=11) slots.push({d: day, h: h}); });
             }
         }
         return slots;
     }
 
-    function updateCourseDropdown() {
+    function updateCourses() {
         const cat = document.getElementById('cat-select').value;
         const select = document.getElementById('course-select');
-        select.innerHTML = '<option value="">-- 2. Select Course --</option>';
+        select.innerHTML = '<option value="">-- Select Course --</option>';
 
-        let courses = (cat === 'ALL') ? DB : DB.filter(x => x.cat === cat || (cat === 'FY' && x.cat === 'FY'));
-        const unique = [...new Set(courses.map(x => x.c))].sort();
+        let courses = (cat === 'ALL') ? RAW_DB : RAW_DB.filter(row => row[6] === cat || (cat === 'FY' && row[6] === 'FY'));
+        const unique = [...new Set(courses.map(r => r[0]))].sort();
         
         unique.forEach(code => {
-            const info = courses.find(x => x.c === code);
-            let opt = document.createElement('option');
+            const row = courses.find(r => r[0] === code);
+            const opt = document.createElement('option');
             opt.value = code;
-            opt.innerHTML = `${code} - ${info.n}`;
+            opt.textContent = `${code} - ${row[1]}`;
             select.appendChild(opt);
         });
-        document.getElementById('sec-list').innerHTML = '<div style="padding:20px; text-align:center; color:#94a3b8;">Select a course to view sections</div>';
+        document.getElementById('section-list').innerHTML = '<div style="text-align:center; padding:20px; color:#9ca3af;">Select a course to view sections.</div>';
     }
 
     function renderSections() {
         const code = document.getElementById('course-select').value;
-        const container = document.getElementById('sec-list');
+        const container = document.getElementById('section-list');
         container.innerHTML = '';
         if(!code) return;
 
-        const sections = DB.filter(x => x.c === code);
-        
-        ['L', 'T', 'P'].forEach(type => {
-            const typeSecs = sections.filter(x => x.t === type);
+        const sections = RAW_DB.filter(r => r[0] === code);
+        const types = ['L','T','P'];
+
+        types.forEach(type => {
+            const typeSecs = sections.filter(r => r[2] === type);
             if(typeSecs.length > 0) {
                 const h = document.createElement('div');
-                h.className = 'sec-header';
-                h.innerText = type === 'L' ? 'Lectures' : type === 'T' ? 'Tutorials' : 'Practicals';
+                h.className = 'type-header';
+                h.textContent = type === 'L' ? 'Lectures' : type === 'T' ? 'Tutorials' : 'Practicals';
                 container.appendChild(h);
 
                 typeSecs.forEach(sec => {
-                    const isSelected = mySchedule.some(s => s.c === sec.c && s.t === sec.t && s.s === sec.s);
+                    // sec: [Code, Name, Type, SecNum, Instr, Time, Cat]
+                    const isSelected = mySchedule.some(s => s[0]===sec[0] && s[3]===sec[3]);
                     const clash = checkClash(sec);
                     
                     const div = document.createElement('div');
                     div.className = `sec-card ${isSelected ? 'selected' : ''} ${(!isSelected && clash) ? 'conflict' : ''}`;
                     div.onclick = () => toggleSection(sec);
-                    
                     div.innerHTML = `
-                        <div>
-                            <span style="font-weight:bold; color:${typeColor(type)}">${sec.s}</span>
-                            <span style="font-size:0.8rem; color:#64748b;"> | ${sec.tm}</span>
+                        <div class="sec-info">
+                            <h4>${sec[3]}</h4>
+                            <p>🕒 ${sec[5]}</p>
+                            ${(clash && !isSelected) ? `<p style="color:var(--red)">⚠️ Clash: ${clash[0]}</p>` : ''}
                         </div>
-                        <div style="font-size:0.75rem; color:#94a3b8;">${sec.i.split(' ')[0]}</div>
+                        <div class="sec-instr">${sec[4]}</div>
                     `;
                     container.appendChild(div);
                 });
@@ -247,139 +843,124 @@
         });
     }
 
-    function typeColor(t) {
-        if(t==='L') return '#2563eb';
-        if(t==='T') return '#10b981';
-        return '#f59e0b';
-    }
-
     function checkClash(newSec) {
-        const newSlots = parseTime(newSec.tm);
-        for (let existing of mySchedule) {
-            if (existing.c === newSec.c && existing.t === newSec.t) continue; // Replacing same type
-            const existSlots = parseTime(existing.tm);
+        const newSlots = parseTime(newSec[5]);
+        for(let existing of mySchedule) {
+            if(existing[0] === newSec[0] && existing[2] === newSec[2]) continue; // Same course same type = replace
+            const existSlots = parseTime(existing[5]);
             const overlap = newSlots.some(ns => existSlots.some(es => es.d === ns.d && es.h === ns.h));
-            if (overlap) return existing;
+            if(overlap) return existing;
         }
         return null;
     }
 
     function toggleSection(sec) {
-        // Remove existing of same type
-        const idx = mySchedule.findIndex(s => s.c === sec.c && s.t === sec.t);
+        const idx = mySchedule.findIndex(s => s[0] === sec[0] && s[2] === sec[2]);
         if(idx > -1) {
             const prev = mySchedule[idx];
             mySchedule.splice(idx, 1);
-            if(prev.s === sec.s) { updateUI(); return; } // Toggle off
+            if(prev[3] === sec[3]) { updateUI(); return; } // Toggle off
         }
 
         const clash = checkClash(sec);
-        if(clash) {
-            showToast(`❌ Clash with ${clash.c}`);
-            return;
-        }
+        if(clash) { showToast(`❌ Time Clash with ${clash[0]}`); return; }
 
         mySchedule.push(sec);
         updateUI();
     }
 
-    function showToast(msg) {
-        const t = document.getElementById('toast');
-        t.innerText = msg;
-        t.style.display = 'block';
-        setTimeout(() => t.style.display = 'none', 2000);
+    function removeCourse(code) {
+        mySchedule = mySchedule.filter(s => s[0] !== code);
+        updateUI();
     }
-
-    // ============================================
-    // 3. UI RENDERING & COMPLETENESS CHECK
-    // ============================================
 
     function updateUI() {
-        renderVerticalGrid();
-        renderMyCourses();
-        renderSections(); // Refresh highlights
+        renderGrid();
+        renderMyList();
+        renderSections();
         
-        // Update total credits
-        const unique = [...new Set(mySchedule.map(s => s.c))];
+        // Count credits (Simplified: L=3, P=1 usually)
+        const unique = [...new Set(mySchedule.map(s => s[0]))];
         let total = 0;
-        unique.forEach(c => total += mySchedule.find(s => s.c === c).cr);
-        document.getElementById('total-credits').innerText = total;
+        unique.forEach(c => {
+            const parts = mySchedule.filter(s => s[0] === c);
+            total += 3; // Base
+            if(parts.some(p => p[2] === 'P')) total += 1; // Lab
+        });
+        document.getElementById('credit-count').textContent = total;
     }
 
-    function renderVerticalGrid() {
-        const tbody = document.getElementById('timetable-body');
+    function renderGrid() {
+        const tbody = document.getElementById('grid-body');
         tbody.innerHTML = '';
-        const days = ['M', 'T', 'W', 'Th', 'F', 'S'];
-        const hours = [
-            "1 (8-9)", "2 (9-10)", "3 (10-11)", "4 (11-12)", "5 (12-1)",
-            "6 (1-2)", "7 (2-3)", "8 (3-4)", "9 (4-5)", "10 (5-6)", "11 (6-7)"
-        ];
+        const hours = [1,2,3,4,5,6,7,8,9,10,11];
+        const days = ['M','T','W','Th','F','S'];
 
-        hours.forEach((label, index) => {
-            const hourNum = index + 1;
-            let row = `<tr><td class="time-col">${label}</td>`;
-            
-            days.forEach(day => {
-                let content = '';
+        hours.forEach(h => {
+            let row = `<tr><td class="time-col">${h}</td>`;
+            days.forEach(d => {
+                let cellContent = '';
                 mySchedule.forEach(sec => {
-                    const slots = parseTime(sec.tm);
-                    if(slots.some(s => s.d === day && s.h === hourNum)) {
-                        content += `<div class="chip tag-${sec.t}">${sec.c} ${sec.t}${sec.s.replace(/[LTP]/g,'')}</div>`;
+                    const slots = parseTime(sec[5]);
+                    if(slots.some(s => s.d === d && s.h === h)) {
+                        cellContent += `<div class="grid-item badge-${sec[2]}" title="${sec[0]} ${sec[3]}\n${sec[4]}">${sec[0]} ${sec[2]}${sec[3].replace(/[LTP]/g,'')}</div>`;
                     }
                 });
-                row += `<td>${content}</td>`;
+                row += `<td>${cellContent}</td>`;
             });
             tbody.innerHTML += row + '</tr>';
         });
     }
 
-    function renderMyCourses() {
-        const list = document.getElementById('reg-list');
+    function renderMyList() {
+        const list = document.getElementById('selected-list');
         list.innerHTML = '';
-        
-        // Group by Course
-        const uniqueCodes = [...new Set(mySchedule.map(s => s.c))].sort();
-        
-        uniqueCodes.forEach(code => {
-            // Find what is required in DB
-            const dbEntries = DB.filter(x => x.c === code);
-            const hasL = dbEntries.some(x => x.t === 'L');
-            const hasT = dbEntries.some(x => x.t === 'T');
-            const hasP = dbEntries.some(x => x.t === 'P');
+        const unique = [...new Set(mySchedule.map(s => s[0]))].sort();
 
-            // Find what user has
-            const userEntries = mySchedule.filter(x => x.c === code);
-            const userL = userEntries.find(x => x.t === 'L');
-            const userT = userEntries.find(x => x.t === 'T');
-            const userP = userEntries.find(x => x.t === 'P');
+        unique.forEach(code => {
+            // Check requirements from DB
+            const dbSecs = RAW_DB.filter(r => r[0] === code);
+            const hasL = dbSecs.some(r => r[2] === 'L');
+            const hasP = dbSecs.some(r => r[2] === 'P');
 
-            // Build warnings
+            // User selections
+            const userSecs = mySchedule.filter(s => s[0] === code);
+            const userL = userSecs.find(s => s[2] === 'L');
+            const userP = userSecs.find(s => s[2] === 'P');
+            const userT = userSecs.find(s => s[2] === 'T');
+
             let warnings = [];
             if(hasL && !userL) warnings.push("Missing Lecture");
-            if(hasT && !userT) warnings.push("Missing Tutorial");
-            if(hasP && !userP) warnings.push("Missing Practical");
+            if(hasP && !userP) warnings.push("Missing Lab");
 
             const div = document.createElement('div');
-            div.className = 'course-group';
+            div.className = 'course-chip';
             div.innerHTML = `
-                <div class="course-title">
-                    <span>${code}</span>
-                    <span style="font-weight:normal; color:#64748b;">${userEntries[0].n}</span>
+                <div class="chip-info">
+                    <div class="chip-code">${code}</div>
+                    <div class="chip-badges">
+                        ${userL ? `<span class="badge badge-L">${userL[3]}</span>` : ''}
+                        ${userT ? `<span class="badge badge-T">${userT[3]}</span>` : ''}
+                        ${userP ? `<span class="badge badge-P">${userP[3]}</span>` : ''}
+                    </div>
+                    ${warnings.map(w => `<span class="warning">⚠️ ${w}</span>`).join('')}
                 </div>
-                <div>
-                    ${userL ? `<span class="comp-tag tag-L">L: ${userL.s}</span>` : ''}
-                    ${userT ? `<span class="comp-tag tag-T">T: ${userT.s}</span>` : ''}
-                    ${userP ? `<span class="comp-tag tag-P">P: ${userP.s}</span>` : ''}
-                </div>
-                ${warnings.length > 0 ? `<span class="missing-warning">⚠️ ${warnings.join(', ')}</span>` : ''}
+                <button class="btn-del" onclick="removeCourse('${code}')">&times;</button>
             `;
             list.appendChild(div);
         });
     }
 
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.style.display = 'block';
+        setTimeout(() => t.style.display = 'none', 3000);
+    }
+
     // Init
-    window.onload = function() {
-        updateCourseDropdown();
+    window.onload = () => {
+        updateCourses();
         updateUI();
     };
 </script>
