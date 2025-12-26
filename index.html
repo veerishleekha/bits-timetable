@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BITS Pilani Timetable Master (v3.0)</title>
+    <style>
+        :root { --primary: #3b82f6; --dark: #1e293b; --light: #f1f5f9; --red: #ef4444; --green: #22c55e; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f8fafc; margin: 0; padding: 20px; color: var(--dark); }
+        
+        .container { max-width: 1400px; margin: 0 auto; display: grid; grid-template-columns: 350px 1fr; gap: 20px; }
+        
+        /* Sidebar */
+        .panel { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); height: fit-content; }
+        h1 { color: var(--primary); margin: 0 0 10px 0; font-size: 1.5rem; }
+        h3 { margin: 15px 0 5px 0; font-size: 0.95rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        select { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1rem; margin-bottom: 10px; background: #fff; }
+        
+        /* Section List */
+        .sec-container { max-height: 45vh; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc; padding: 5px; }
+        .sec-card { 
+            background: white; padding: 12px; margin-bottom: 6px; border-radius: 6px; border: 1px solid #e2e8f0; cursor: pointer; transition: 0.2s; position: relative; 
+        }
+        .sec-card:hover { border-color: var(--primary); transform: translateX(2px); }
+        .sec-card.selected { background: #dcfce7; border-color: var(--green); border-left: 4px solid var(--green); }
+        .sec-card.conflict { opacity: 0.6; background: #fee2e2; border-color: var(--red); cursor: not-allowed; }
+        
+        .sec-info { display: flex; justify-content: space-between; align-items: center; }
+        .sec-code { font-weight: 700; color: var(--primary); }
+        .sec-credits { font-size: 0.8rem; background: #e2e8f0; padding: 2px 6px; border-radius: 4px; }
+        .sec-time { font-size: 0.85rem; margin-top: 4px; color: #475569; display: flex; gap: 5px; }
+        
+        /* Timetable Grid */
+        .grid-wrapper { overflow-x: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; table-layout: fixed; }
+        th { background: #f1f5f9; padding: 12px; border: 1px solid #e2e8f0; font-size: 0.85rem; color: #64748b; }
+        td { border: 1px solid #e2e8f0; height: 60px; vertical-align: top; padding: 4px; position: relative; }
+        
+        .day-header { background: #f8fafc; font-weight: bold; color: var(--primary); text-align: center; vertical-align: middle; width: 60px; }
+        
+        /* Course Chip in Grid */
+        .chip { 
+            background: #eff6ff; color: #1d4ed8; font-size: 0.75rem; padding: 4px; 
+            border-radius: 4px; border-left: 3px solid #3b82f6; margin-bottom: 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); 
+        }
+
+        /* My Courses List */
+        .my-courses { margin-top: 20px; border-top: 2px solid #e2e8f0; padding-top: 15px; }
+        .my-row { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #f1f5f9; }
+        .btn-del { background: #fee2e2; color: #b91c1c; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+        
+        .stats { background: var(--dark); color: white; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px; }
+        .stat-num { font-size: 2rem; font-weight: 800; display: block; line-height: 1; }
+
+        /* Toast */
+        #toast { position: fixed; bottom: 20px; right: 20px; padding: 12px 24px; background: #333; color: white; border-radius: 8px; display: none; z-index: 100; animation: slideIn 0.3s; }
+        @keyframes slideIn { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="panel">
+        <h1>📅 Timetable Master</h1>
+        
+        <div class="stats">
+            <span class="stat-num" id="credit-count">0</span>
+            <span style="opacity:0.8; font-size:0.9rem;">Registered Credits</span>
+        </div>
+
+        <h3>1. Select Category</h3>
+        <select id="cat-select" onchange="updateCourseDropdown()">
+            <option value="ALL">-- Show All Streams --</option>
+            <option value="FY">First Year (Common)</option>
+            <option value="CS">Computer Science (CS)</option>
+            <option value="EEE">Electronics (EEE/ENI/Instr)</option>
+            <option value="ME">Mechanical (ME)</option>
+            <option value="CHE">Chemical (CHE)</option>
+            <option value="CIV">Civil (CE)</option>
+            <option value="PHA">Pharmacy (PHA)</option>
+            <option value="SCI">Science (Math/Phy/Bio/Chem)</option>
+            <option value="FIN">Finance / Management (Minor)</option>
+            <option value="HUM">Humanities / Electives</option>
+        </select>
+
+        <h3>2. Choose Course</h3>
+        <select id="course-select" onchange="renderSections()">
+            <option value="">Select Category First</option>
+        </select>
+
+        <h3>3. Add Sections</h3>
+        <div id="sec-list" class="sec-container">
+            <div style="padding:20px; text-align:center; color:#94a3b8;">Select a course to view sections</div>
+        </div>
+
+        <div class="my-courses">
+            <h3>My Registered Courses</h3>
+            <div id="reg-list"></div>
+            <button onclick="resetAll()" style="width:100%; margin-top:10px; padding:10px; background:#e2e8f0; border:none; cursor:pointer; border-radius:6px; color:#475569; font-weight:bold;">Clear Timetable</button>
+        </div>
+    </div>
+
+    <div class="grid-wrapper">
+        <h2 style="margin-top:0; color:#475569;">Weekly Schedule</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th class="day-header">Day</th>
+                    <th>1<br>8-9</th><th>2<br>9-10</th><th>3<br>10-11</th><th>4<br>11-12</th><th>5<br>12-1</th>
+                    <th>6<br>1-2</th><th>7<br>2-3</th><th>8<br>3-4</th><th>9<br>4-5</th><th>10<br>5-6</th><th>11<br>6-7</th>
+                </tr>
+            </thead>
+            <tbody id="grid-body"></tbody>
+        </table>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ==========================================
+// 1. COMPREHENSIVE DATABASE (Parsed from PDF)
+// ==========================================
+const DB = [
+    // --- FINANCE / MANAGEMENT (Requested Explicitly) ---
+    {c:"FIN F311", n:"Derivatives & Risk Mgmt", cr:3, t:"L", s:"L1", i:"Aditya Sharma", tm:"MWF 8", cat:"FIN"},
+    {c:"ECON F354", n:"Derivatives & Risk Mgmt", cr:3, t:"L", s:"L1", i:"Aditya Sharma", tm:"MWF 8", cat:"FIN"},
+    {c:"FIN F212", n:"Funda of Fin & Acc", cr:3, t:"L", s:"L1", i:"Aprajita Pandey", tm:"MWF 7", cat:"FIN"},
+    {c:"FIN F315", n:"Financial Management", cr:3, t:"L", s:"L1", i:"Arya Kumar", tm:"MWF 9", cat:"FIN"},
+    {c:"FIN F414", n:"Fin Risk Anal & Mgmt", cr:3, t:"L", s:"L1", i:"Byomakesh Debata", tm:"MWF 7", cat:"FIN"},
+    {c:"ECON F315", n:"Financial Management", cr:3, t:"L", s:"L1", i:"Arya Kumar", tm:"MWF 9", cat:"FIN"},
+    {c:"ECON F241", n:"Econometric Methods", cr:3, t:"L", s:"L1", i:"NV Murthy", tm:"T Th F 4", cat:"FIN"},
+    {c:"ECON F342", n:"Applied Econometrics", cr:3, t:"L", s:"L1", i:"Rahul Arora", tm:"MW 2 T 9", cat:"FIN"},
+    {c:"ECON F413", n:"Financial Engineering", cr:3, t:"L", s:"L1", i:"Aditya Sharma", tm:"T Th F 3", cat:"FIN"},
+    {c:"MGTS F211", n:"Principles of Mgmt", cr:3, t:"L", s:"L1", i:"Jyoti", tm:"MWF 7", cat:"FIN"},
+    {c:"MGTS F211", n:"Principles of Mgmt", cr:3, t:"L", s:"L2", i:"Jyoti", tm:"MW 3 Th 9", cat:"FIN"},
+
+    // --- CS CORE & ELECTIVES ---
+    {c:"CS F111", n:"Comp Programming", cr:4, t:"L", s:"L1", i:"Bharat R", tm:"MW 2 T 9", cat:"FY"},
+    {c:"CS F111", n:"Comp Programming", cr:4, t:"L", s:"L2", i:"Jagat Sesh", tm:"T Th F 3", cat:"FY"},
+    {c:"CS F111", n:"Comp Programming", cr:4, t:"P", s:"P1", i:"Radhika B", tm:"M 3 4", cat:"FY"},
+    {c:"CS F111", n:"Comp Programming", cr:4, t:"P", s:"P2", i:"Radhika B", tm:"W 6 7", cat:"FY"},
+    {c:"CS F211", n:"Data Structures", cr:4, t:"L", s:"L1", i:"Poonam Goyal", tm:"MW 4 T 10", cat:"CS"},
+    {c:"CS F211", n:"Data Structures", cr:4, t:"L", s:"L2", i:"Vishal Gupta", tm:"T Th F 3", cat:"CS"},
+    {c:"CS F211", n:"Data Structures", cr:4, t:"P", s:"P1", i:"Aarti", tm:"T 7 8 9", cat:"CS"},
+    {c:"CS F212", n:"Database Systems", cr:4, t:"L", s:"L1", i:"Hari Babu", tm:"MW 4 T 10", cat:"CS"},
+    {c:"CS F212", n:"Database Systems", cr:4, t:"L", s:"L2", i:"Navneet Goyal", tm:"T Th F 3", cat:"CS"},
+    {c:"CS F213", n:"OOP", cr:4, t:"L", s:"L1", i:"Tanmaya M", tm:"MWF 8", cat:"CS"},
+    {c:"CS F213", n:"OOP", cr:4, t:"L", s:"L2", i:"Avinash Gautam", tm:"T Th F 3", cat:"CS"},
+    {c:"CS F241", n:"Microprocessors", cr:4, t:"L", s:"L1", i:"Meetha Shenoy", tm:"MW 5 Th 10", cat:"CS"},
+    {c:"CS F303", n:"Computer Networks", cr:4, t:"L", s:"L1", i:"Virendra Singh", tm:"T Th F 4", cat:"CS"},
+    {c:"CS F320", n:"Foundations of Data Sci", cr:3, t:"L", s:"L1", i:"Navneet Goyal", tm:"MWF 8", cat:"CS"},
+    {c:"CS F342", n:"Comp Arch", cr:4, t:"L", s:"L1", i:"Saurabh Gandhi", tm:"MWF 9", cat:"CS"},
+    {c:"CS F351", n:"Theory of Comp", cr:3, t:"L", s:"L1", i:"Shashank Gupta", tm:"T Th F 2", cat:"CS"},
+    {c:"CS F363", n:"Compiler Const", cr:3, t:"L", s:"L1", i:"Shashank Gupta", tm:"MW 3 Th 9", cat:"CS"},
+    {c:"CS F364", n:"Design Anal Algo", cr:3, t:"L", s:"L1", i:"Abhishek Mishra", tm:"T Th F 5", cat:"CS"},
+    {c:"CS F372", n:"Operating Systems", cr:3, t:"L", s:"L1", i:"JP Misra", tm:"T Th F 3", cat:"CS"},
+    {c:"CS F407", n:"AI", cr:3, t:"L", s:"L1", i:"Amit Dua", tm:"MW 4 T 10", cat:"CS"},
+    {c:"CS F425", n:"Deep Learning", cr:3, t:"L", s:"L1", i:"Pratik Narang", tm:"MW 5 Th 10", cat:"CS"},
+
+    // --- EEE / INSTR CORE ---
+    {c:"EEE F111", n:"Elec Sciences", cr:3, t:"L", s:"L1", i:"Praveen Kumar", tm:"T Th F 2", cat:"FY"},
+    {c:"EEE F111", n:"Elec Sciences", cr:3, t:"L", s:"L2", i:"Navneet Gupta", tm:"MW 3 Th 9", cat:"FY"},
+    {c:"EEE F216", n:"Elec Dev Sim Lab", cr:2, t:"P", s:"P1", i:"Pradeep Verma", tm:"Th 7 8", cat:"EEE"},
+    {c:"EEE F241", n:"Microprocessors", cr:4, t:"L", s:"L1", i:"Meetha Shenoy", tm:"MW 5 Th 10", cat:"EEE"},
+    {c:"EEE F242", n:"Control Systems", cr:3, t:"L", s:"L1", i:"Puneet Mishra", tm:"T Th F 3", cat:"EEE"},
+    {c:"EEE F242", n:"Control Systems", cr:3, t:"L", s:"L2", i:"Prashant Kumar", tm:"T Th F 3", cat:"EEE"},
+    {c:"EEE F243", n:"Signals & Systems", cr:3, t:"L", s:"L1", i:"Pawan K Ajmera", tm:"T Th F 2", cat:"EEE"},
+    {c:"EEE F244", n:"Microelectronic Ckts", cr:3, t:"L", s:"L1", i:"Anu Gupta", tm:"MW 4 T 10", cat:"EEE"},
+    {c:"EEE F312", n:"Power Systems", cr:3, t:"L", s:"L1", i:"Hari Om Bansal", tm:"T Th F 5", cat:"EEE"},
+    {c:"EEE F341", n:"Analog Electronics", cr:4, t:"L", s:"L1", i:"Arnab Hazra", tm:"MW 3 Th 9", cat:"EEE"},
+    {c:"EEE F342", n:"Power Electronics", cr:4, t:"L", s:"L1", i:"Dheerendra Singh", tm:"T Th F 4", cat:"EEE"},
+
+    // --- MECH CORE ---
+    {c:"ME F218", n:"Adv Mech Solids", cr:2, t:"L", s:"L1", i:"Mani Sankar", tm:"T Th 3", cat:"ME"},
+    {c:"ME F219", n:"Manuf Processes", cr:4, t:"L", s:"L1", i:"Geeta Bhatt", tm:"MW 5 Th 10", cat:"ME"},
+    {c:"ME F220", n:"Heat Transfer", cr:4, t:"L", s:"L1", i:"Srinivasan P", tm:"T Th F 2", cat:"ME"},
+    {c:"ME F221", n:"Mech & Machines", cr:3, t:"L", s:"L1", i:"Jitendra Rathore", tm:"MW 4 T 10", cat:"ME"},
+    {c:"ME F316", n:"Manuf Mgmt", cr:2, t:"L", s:"L1", i:"Abhijeet K", tm:"MW 3", cat:"ME"},
+    {c:"ME F318", n:"CAD", cr:3, t:"L", s:"L1", i:"Amit Singh", tm:"T 9", cat:"ME"},
+    {c:"ME F319", n:"Vibrations", cr:3, t:"L", s:"L1", i:"Arun Jalan", tm:"T Th F 4", cat:"ME"},
+    {c:"ME F341", n:"Primemovers", cr:3, t:"L", s:"L1", i:"Manoj Soni", tm:"MW 2", cat:"ME"},
+
+    // --- CHEM / CIVIL / PHARMA (Samples) ---
+    {c:"CHE F241", n:"Heat Transfer", cr:3, t:"L", s:"L1", i:"Suresh Gupta", tm:"T Th F 3", cat:"CHE"},
+    {c:"CHE F242", n:"Num Methods CHE", cr:3, t:"L", s:"L1", i:"Hare Krishna", tm:"T Th F 2", cat:"CHE"},
+    {c:"CE F241", n:"Analysis of Struct", cr:3, t:"L", s:"L1", i:"Manoj Kumar", tm:"M 4 T 10 W 9", cat:"CIV"},
+    {c:"PHA F215", n:"Intro Mol Bio", cr:3, t:"L", s:"L1", i:"Aniruddha Roy", tm:"MW 5", cat:"PHA"},
+    {c:"PHA F241", n:"Pharm Chemistry", cr:3, t:"L", s:"L1", i:"Sandeep S", tm:"MW 9", cat:"PHA"},
+
+    // --- MATH / SCIENCE ---
+    {c:"MATH F112", n:"Math II", cr:3, t:"L", s:"L1", i:"Sangita Yadav", tm:"MWF 9", cat:"FY"},
+    {c:"MATH F113", n:"Prob & Stats", cr:3, t:"L", s:"L1", i:"Anirudh Singh", tm:"T Th F 6", cat:"FY"},
+    {c:"MATH F113", n:"Prob & Stats", cr:3, t:"L", s:"L2", i:"Pramod Eyyunni", tm:"T Th F 3", cat:"FY"},
+    {c:"MATH F211", n:"Math III", cr:3, t:"L", s:"L1", i:"Krishnendra S", tm:"MWF 9", cat:"SCI"},
+    {c:"MATH F241", n:"Math Methods", cr:3, t:"L", s:"L1", i:"Trilok Mathur", tm:"MW 4 T 10", cat:"SCI"},
+    {c:"BIO F101", n:"Intro Bio", cr:3, t:"L", s:"L1", i:"Shilpi Garg", tm:"MW 2", cat:"FY"},
+    {c:"BIO F101", n:"Intro Bio", cr:3, t:"L", s:"L2", i:"Shilpi Garg", tm:"MW 4", cat:"FY"},
+    {c:"CHEM F101", n:"Chemistry", cr:3, t:"L", s:"L1", i:"Saumi Ray", tm:"MW 2", cat:"FY"},
+    {c:"CHEM F101", n:"Chemistry", cr:3, t:"L", s:"L2", i:"Anil Kumar", tm:"MW 4", cat:"FY"},
+    {c:"PHY F101", n:"Gen Physics", cr:3, t:"L", s:"L1", i:"Anshuman Dalvi", tm:"T Th F 6", cat:"FY"},
+    {c:"PHY F101", n:"Gen Physics", cr:3, t:"L", s:"L2", i:"Raj Kumar", tm:"T Th F 4", cat:"FY"},
+
+    // --- HUMANITIES ---
+    {c:"GS F232", n:"Intro Psych", cr:3, t:"L", s:"L1", i:"Tanu Shukla", tm:"MWF 8", cat:"HUM"},
+    {c:"GS F223", n:"Intro Mass Comm", cr:3, t:"L", s:"L1", i:"Sushila Shekhawat", tm:"T Th F 5", cat:"HUM"},
+    {c:"HSS F334", n:"Srimad Bhagavad Gita", cr:3, t:"L", s:"L1", i:"Vinay Chamola", tm:"T Th F 5", cat:"HUM"},
+    {c:"GS F245", n:"Effective Public Speak", cr:3, t:"L", s:"L1", i:"Pushp Lata", tm:"MW 4 T 10", cat:"HUM"},
+    {c:"BITS F111", n:"Thermodynamics", cr:3, t:"L", s:"L1", i:"Navin Singh", tm:"MW 2 T 9", cat:"FY"},
+    {c:"BITS F112", n:"Tech Report Writing", cr:2, t:"L", s:"L1", i:"Gokul V", tm:"M 1 MW 2", cat:"FY"}
+];
+
+let mySchedule = [];
+
+// ==========================================
+// 2. PARSING & LOGIC
+// ==========================================
+
+function parseTime(str) {
+    if(!str) return [];
+    let slots = [];
+    // Convert 'Th' -> 'H' for easier parsing
+    let clean = str.replace(/Th/g, 'H'); 
+    // Find pairs like "MW 5" or "T 9 10"
+    let matches = clean.matchAll(/([A-Z]+)\s*([\d\s]+)/g);
+    
+    for (const match of matches) {
+        let dayStr = match[1];
+        let hourStr = match[2].trim();
+        let hours = hourStr.split(/\s+/).map(Number);
+        
+        for (let char of dayStr) {
+            let d = char === 'H' ? 'Th' : char;
+            hours.forEach(h => {
+                if(h > 0 && h <= 11) slots.push({d, h});
+            });
+        }
+    }
+    return slots;
+}
+
+function updateCourseDropdown() {
+    const cat = document.getElementById('cat-select').value;
+    const select = document.getElementById('course-select');
+    select.innerHTML = '<option value="">-- Choose Course --</option>';
+
+    let courses = (cat === 'ALL') ? DB : DB.filter(x => x.cat === cat || (cat === 'FY' && x.cat === 'FY')); // Basic filter
+    
+    // Get unique course codes
+    const unique = [...new Set(courses.map(x => x.c))].sort();
+    
+    unique.forEach(code => {
+        const info = courses.find(x => x.c === code);
+        let opt = document.createElement('option');
+        opt.value = code;
+        opt.innerHTML = `${code} - ${info.n} (${info.cr} cr)`;
+        select.appendChild(opt);
+    });
+    
+    document.getElementById('sec-list').innerHTML = '<div style="padding:20px; text-align:center; color:#94a3b8;">Select a course to view sections</div>';
+}
+
+function renderSections() {
+    const code = document.getElementById('course-select').value;
+    const container = document.getElementById('sec-list');
+    container.innerHTML = '';
+    
+    if(!code) return;
+
+    const sections = DB.filter(x => x.c === code);
+    
+    ['L', 'T', 'P'].forEach(type => {
+        const typeSecs = sections.filter(x => x.t === type);
+        if(typeSecs.length > 0) {
+            let label = type === 'L' ? 'Lecture' : type === 'T' ? 'Tutorial' : 'Practical';
+            container.innerHTML += `<div style="font-weight:bold; color:#475569; margin:10px 0 5px 2px;">${label}</div>`;
+            
+            typeSecs.forEach(sec => {
+                // Check status
+                const isSelected = mySchedule.some(s => s.c === sec.c && s.t === sec.t && s.s === sec.s);
+                const clash = checkClash(sec);
+                
+                const div = document.createElement('div');
+                div.className = `sec-card ${isSelected ? 'selected' : ''} ${(!isSelected && clash) ? 'conflict' : ''}`;
+                div.onclick = () => toggleSection(sec);
+                
+                div.innerHTML = `
+                    <div class="sec-info">
+                        <span class="sec-code">${sec.s}</span>
+                        <span class="sec-credits">${sec.cr} Cr</span>
+                    </div>
+                    <div class="sec-time">
+                        <span>🕒 ${sec.tm}</span>
+                    </div>
+                    <div style="font-size:0.8rem; color:#64748b; margin-top:2px;">👨‍🏫 ${sec.i}</div>
+                    ${(!isSelected && clash) ? `<div style="color:var(--red); font-size:0.75rem; font-weight:bold; margin-top:4px;">⚠️ Clash with ${clash.c}</div>` : ''}
+                `;
+                container.appendChild(div);
+            });
+        }
+    });
+}
+
+function checkClash(newSec) {
+    const newSlots = parseTime(newSec.tm);
+    for (let existing of mySchedule) {
+        // Skip comparing with same course/type (since we replace those)
+        if (existing.c === newSec.c && existing.t === newSec.t) continue;
+        
+        const existSlots = parseTime(existing.tm);
+        const overlap = newSlots.some(ns => existSlots.some(es => es.d === ns.d && es.h === ns.h));
+        if (overlap) return existing;
+    }
+    return null;
+}
+
+function toggleSection(sec) {
+    // 1. Remove existing of same type
+    const idx = mySchedule.findIndex(s => s.c === sec.c && s.t === sec.t);
+    if(idx > -1) {
+        const prev = mySchedule[idx];
+        mySchedule.splice(idx, 1);
+        if(prev.s === sec.s) {
+            updateUI(); return; // Just toggle off
+        }
+    }
+
+    // 2. Check Clash
+    const clash = checkClash(sec);
+    if(clash) {
+        showToast(`❌ Clash with ${clash.c} (${clash.s})`);
+        return;
+    }
+
+    // 3. Add
+    mySchedule.push(sec);
+    showToast(`✅ Added ${sec.c} ${sec.s}`);
+    updateUI();
+}
+
+function removeCourse(c, t) {
+    mySchedule = mySchedule.filter(s => !(s.c === c && s.t === t));
+    updateUI();
+}
+
+function resetAll() {
+    mySchedule = [];
+    updateUI();
+    showToast("Timetable Cleared");
+}
+
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.innerText = msg;
+    t.style.display = 'block';
+    setTimeout(() => t.style.display = 'none', 2000);
+}
+
+// ==========================================
+// 3. UI UPDATES
+// ==========================================
+function updateUI() {
+    // 1. Update Grid
+    const days = ['M','T','W','Th','F','S'];
+    const tbody = document.getElementById('grid-body');
+    tbody.innerHTML = '';
+    
+    days.forEach(d => {
+        let row = `<tr><td class="day-header">${d}</td>`;
+        for(let h=1; h<=11; h++) {
+            let content = '';
+            mySchedule.forEach(sec => {
+                const slots = parseTime(sec.tm);
+                if(slots.some(s => s.d === d && s.h === h)) {
+                    content += `<div class="chip">${sec.c}<br>${sec.t}${sec.s.replace(/[LTP]/g,'')}</div>`;
+                }
+            });
+            row += `<td>${content}</td>`;
+        }
+        tbody.innerHTML += row + '</tr>';
+    });
+
+    // 2. Update My List
+    const list = document.getElementById('reg-list');
+    list.innerHTML = '';
+    mySchedule.sort((a,b) => a.c.localeCompare(b.c)).forEach(s => {
+        list.innerHTML += `
+            <div class="my-row">
+                <div>
+                    <strong>${s.c} ${s.s}</strong>
+                    <div style="font-size:0.8rem; color:#64748b;">${s.n}</div>
+                </div>
+                <button class="btn-del" onclick="removeCourse('${s.c}','${s.t}')">Remove</button>
+            </div>
+        `;
+    });
+
+    // 3. Calc Credits
+    const uniqueCourses = [...new Set(mySchedule.map(s => s.c))];
+    let total = 0;
+    uniqueCourses.forEach(code => {
+        // Find credit value from first instance found in schedule
+        const ref = mySchedule.find(s => s.c === code);
+        total += ref.cr;
+    });
+    document.getElementById('credit-count').innerText = total;
+
+    // 4. Refresh selection highlights
+    renderSections();
+}
+
+// Init
+window.onload = function() {
+    updateCourseDropdown();
+    updateUI();
+};
+</script>
+</body>
+</html>
